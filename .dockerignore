@@ -1,0 +1,13 @@
+# Git repository files
+.git
+.gitignore
+.gitattributes
+
+# VSCode settings
+.vscode
+
+# github settings
+.github
+
+# Dev Container configuration files and local environment
+.devcontainer

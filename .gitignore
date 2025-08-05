@@ -1,0 +1,2 @@
+# Local environment variables for Dev Container
+/.devcontainer/_base/.env

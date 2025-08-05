@@ -1,0 +1,91 @@
+{
+  "name": "${localWorkspaceFolderBasename}",
+  "dockerComposeFile": "./docker-compose.yml",
+  "service": "devcontainer",
+  "workspaceFolder": "/workspaces/",
+  "remoteUser": "vscode",
+  "runServices": [
+    "devcontainer"
+  ],
+  "features": {
+    "ghcr.io/devcontainers/features/common-utils:2": {
+      "installZsh": false,
+      "configureZshAsDefaultShell": false,
+      "upgradePackages": true
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        // 基本的なファイル設定
+        "files.autoGuessEncoding": true,
+        "files.insertFinalNewline": true,
+        "files.trimFinalNewlines": true,
+        "files.trimTrailingWhitespace": true,
+        // 開発の快適性に寄与するエディタ設定
+        "editor.formatOnSave": true,
+        "editor.bracketPairColorization.enabled": true,
+        // Git関連の便利な設定
+        "git.autofetch": true,
+        "git.confirmSync": false,
+        // --- 言語・ツールごとのフォーマッター/Linter設定  ---
+        "[json]": {
+          "editor.defaultFormatter": "vscode.json-language-features"
+        },
+        "[yaml]": {
+          "editor.defaultFormatter": "redhat.vscode-yaml",
+          "editor.insertSpaces": true,
+          "editor.tabSize": 2,
+          "editor.autoIndent": "advanced"
+        },
+        "yaml.format.enable": true,
+        "[markdown]": {
+          "editor.defaultFormatter": "yzhang.markdown-all-in-one"
+        },
+        "markdownlint.config": {
+          "MD007": {
+            "indent": 4
+          }
+        },
+        // ツール設定
+        "todo-tree.general.tags": [
+          "BUG",
+          "HACK",
+          "FIXME",
+          "TODO",
+          "XXX",
+          "[ ]",
+          "[x]"
+        ],
+        // 追加の設定ここから
+        //
+        // 追加の設定ここまで
+      },
+      "extensions": [
+        // Version Control & GitHub
+        "eamodio.gitlens",
+        "GitHub.vscode-pull-request-github",
+        "GitHub.copilot",
+        "github.vscode-github-actions",
+        // Docker & Infrastructure
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        // Documentation & Markdown
+        "bierner.markdown-mermaid",
+        "yzane.markdown-pdf",
+        "DavidAnson.vscode-markdownlint",
+        "yzhang.markdown-all-in-one",
+        // Code Quality & Utilities
+        "streetsidesoftware.code-spell-checker",
+        "Gruntfuggly.todo-tree",
+        "oderwat.indent-rainbow",
+        "janisdd.vscode-edit-csv",
+        // 追加の拡張機能ここから
+        //
+        // 追加の拡張機能ここまで
+      ]
+    }
+  }
+}

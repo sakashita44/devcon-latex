@@ -1,0 +1,31 @@
+name: "アイデア"
+description: "アイデアをIssue化するためのテンプレート"
+title: "[IDEA] <簡単な概要>"
+labels: ["idea"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **アイデアの背景や概要を記述**
+  - type: input
+    id: summary
+    attributes:
+      label: "概要"
+      description: "アイデアの簡単な説明を記述"
+      placeholder: "例: 新しい機能の提案など"
+  - type: textarea
+    id: details
+    attributes:
+      label: "詳細"
+      description: "アイデアの具体的な内容や目的を記述"
+      placeholder: "現状の課題, 実装イメージ, 関連資料など"
+  - type: checkboxes
+    id: progress
+    attributes:
+      label: "検討・進捗状況"
+      description: "アイデアの検討状況やタスクをチェックリスト形式で管理"
+      options:
+        - label: "アイデアの整理"
+        - label: "要件・仕様の検討"
+        - label: "実装・テスト"
+        - label: "ドキュメント整備"

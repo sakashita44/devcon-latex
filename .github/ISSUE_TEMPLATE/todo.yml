@@ -1,0 +1,33 @@
+name: "TODO"
+description: "TODOをIssue化するためのテンプレート"
+title: "[TODO] <簡単な概要>"
+labels: ["todo"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **TODOの詳細を記述してください。**
+
+  - type: input
+    id: summary
+    attributes:
+      label: "概要"
+      description: "TODOの簡単な説明を記述"
+      placeholder: "例: データ処理の最適化"
+
+  - type: textarea
+    id: details
+    attributes:
+      label: "詳細"
+      description: "TODOの詳細な内容を記述"
+      placeholder: "例: データ処理のステップXを並列化する"
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: "優先度"
+      description: "TODOの優先度を選択"
+      options:
+        - "高"
+        - "中"
+        - "低"

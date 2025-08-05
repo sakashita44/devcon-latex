@@ -1,0 +1,58 @@
+name: "不具合解消"
+description: "不具合を記録し、解消するためのテンプレート"
+title: "[FIX] <簡単な概要>"
+labels: ["bug", "fix"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        **不具合の詳細を記述してください。**
+
+  - type: input
+    id: summary
+    attributes:
+      label: "概要"
+      description: "不具合の簡単な説明を記述"
+      placeholder: "例: データ処理中にエラーが発生"
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: "再現手順"
+      description: "不具合を再現する手順を記述"
+      placeholder: |
+        1. データをアップロード
+        2. 処理を実行
+        3. エラーが発生
+
+  - type: input
+    id: expected
+    attributes:
+      label: "期待される結果"
+      description: "本来期待される動作を記述"
+      placeholder: "例: 正常に処理が完了する"
+
+  - type: input
+    id: actual
+    attributes:
+      label: "実際の結果"
+      description: "実際に発生した動作を記述"
+      placeholder: "例: エラーコード123が表示される"
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: "環境情報"
+      description: "不具合が発生した環境を記述"
+      placeholder: "例: OS, Pythonバージョン, ライブラリバージョンなど"
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: "解消の進捗"
+      description: "不具合解消の進捗を管理するためのチェックリストを作成"
+      options:
+        - label: "原因の特定"
+        - label: "修正の実装"
+        - label: "テストの実施"
+        - label: "修正の確認"

@@ -1,0 +1,31 @@
+# テキストファイルの改行コードを LF に統一
+# シェルスクリプト
+*.sh text eol=lf
+
+# Python スクリプト
+*.py text eol=lf
+
+# Markdown ドキュメント
+*.md text eol=lf
+
+# プレーンテキストファイル
+*.txt text eol=lf
+
+# 設定ファイル
+*.json text eol=lf
+*.yaml text eol=lf
+*.yml text eol=lf
+*.ini text eol=lf
+*.toml text eol=lf
+
+# データファイル（テキスト形式の場合）
+*.csv text eol=lf
+*.tsv text eol=lf
+
+# プロジェクトで使う他の一般的なテキストファイル拡張子を追加
+# 例: *.html, *.css, *.js, *.java, *.c, *.cpp など
+
+# 上記で明示的に指定されていないファイルは Git の自動判定に任せる
+# これは最後のルールにする
+
+* text=auto

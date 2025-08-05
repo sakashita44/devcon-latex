@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  devcontainer:
+    image: mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+    volumes:
+      # ワークスペースのマウント
+      - ../:/workspaces/:cached
+      # 動的な外部ディレクトリのマウント（.envファイルから読み込み）
+      - ${ANY_PATH}:/any:cached
+
+    # コンテナを起動し続けるためのコマンド
+    command: sleep infinity
+
+    # 開発に必要な機能を有効化
+    init: true
+    privileged: false
+
+    environment:
+      - SHELL=/bin/bash
+      # .envファイルから環境変数を読み込み
+      # - USER_EMAIL=${USER_EMAIL}
+      # - API_BASE_URL=${API_BASE_URL}
