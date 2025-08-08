@@ -204,7 +204,11 @@ log_success "差分ファイル生成完了: main-diff.tex"
 log_info "PDFをコンパイル中..."
 
 # ルートの.latexmkrcを使用（作業ディレクトリの外のルート）
-cp ../.latexmkrc .
+if [ -f ../.latexmkrc ]; then
+    cp ../.latexmkrc .
+else
+    log_warning "ルートの.latexmkrcが見つかりません。後続のコンパイルでエラーが発生する可能性があります"
+fi
 
 # latexmkの設定
 export LANG=en_US.UTF-8
@@ -247,7 +251,7 @@ if [ -n "$CHANGED_LATEX_FILES" ]; then
     cd "$CURRENT_DIR"
     log_info "  ディレクトリを復元: $(pwd)"
 
-    log_info "    echo "[INFO] LaTeX関連ファイルのGit差分を git-diff.diff に保存しました""
+    log_info "LaTeX関連ファイルのGit差分を git-diff.diff に保存しました"
     log_info "変更されたLaTeX関連ファイル:"
     echo "$CHANGED_LATEX_FILES" | while read -r file; do
         echo "  - $file"
@@ -290,7 +294,7 @@ if [ -n "$CHANGED_BIBS" ]; then
     mkdir -p diff-bib
     echo "$CHANGED_BIBS" | while read -r bib; do
         # 新旧両方のbibファイルを保存
-        local bib_basename=$(basename "$bib")
+        bib_basename=$(basename "$bib")
         git show "$BASE_VERSION:$bib" > "diff-bib/${bib_basename}.old" 2>/dev/null || true
         git show "$CHANGED_VERSION:$bib" > "diff-bib/${bib_basename}.new" 2>/dev/null || true
     done
