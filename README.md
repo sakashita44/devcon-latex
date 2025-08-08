@@ -1,21 +1,29 @@
 # LaTeX論文執筆環境 with DVC
 
-注意: このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です。
-パッケージの要否がわかる場合は、`.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください。
+## 🚀 クイックスタート
 
-LaTeX論文執筆環境です。差分表示やDVC画像管理などの支援ツールを段階的に利用できます。
+**すぐに論文執筆を開始したい場合は [`QUICK_START.md`](QUICK_START.md) を参照してください.**
 
-**コンテナの詳細な使用方法・環境設定は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください。**
+## 注意
 
-[`.devcontainer/README.md`](.devcontainer/README.md)には特に，VS CodeとDev Containerを使用したLaTeX論文執筆環境のセットアップ方法が記載されているため，**目を通しておくことをおすすめします。**
+このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です.
+パッケージの要否がわかる場合は, `.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください.
 
-**差分表示等の支援ツールの使用方法は [`docs/workflow.md`](docs/workflow.md) を参照してください。**
+## 概要
 
-**DVC画像管理の詳細な使用方法は [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください。**
+LaTeX論文執筆環境です. 差分表示やDVC画像管理などの支援ツールを段階的に利用できます.
+
+**コンテナの詳細な使用方法・環境設定は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください.**
+
+[`.devcontainer/README.md`](.devcontainer/README.md)には特に, VS CodeとDev Containerを使用したLaTeX論文執筆環境のセットアップ方法が記載されているため, **目を通しておくことをおすすめします.**
+
+**差分表示等の支援ツールの使用方法は [`docs/workflow.md`](docs/workflow.md) を参照してください.**
+
+**DVC画像管理の詳細な使用方法は [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください.**
 
 ## このテンプレートについて
 
-VS CodeとDev Containerを使用したLaTeX論文執筆環境です。基本的な論文執筆から、差分表示やDVC画像管理まで段階的に機能を利用できます。
+VS CodeとDev Containerを使用したLaTeX論文執筆環境です. 基本的な論文執筆から, 差分表示やDVC画像管理まで段階的に機能を利用できます.
 
 ## 主な特徴
 
@@ -43,9 +51,9 @@ make build
 make watch
 ```
 
-VS Codeのコマンドパレットからもビルド可能．詳細は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください。
+VS Codeのコマンドパレットからもビルド可能. 詳細は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください.
 
-**注意**: DVC機能を使わない場合は、`latex.config`でDVC_REMOTE_URLを空白のままにしてください。
+**注意**: DVC機能を使わない場合は, `latex.config`でDVC_REMOTE_URLを空白のままにしてください.
 
 ### Step 2: 差分表示を使う
 
@@ -59,8 +67,8 @@ make diff
 make diff-pdf BASE=v1.0.0 CHANGED=HEAD
 ```
 
-各種コマンド等の利用例は [`docs/workflow.md`](docs/workflow.md)を参照してください。
-またコマンドの詳細は [`docs/README_DiffTool.md`](docs/README_DiffTool.md)を参照してください。
+各種コマンド等の利用例は [`docs/workflow.md`](docs/workflow.md)を参照してください.
+またコマンドの詳細は [`docs/README_DiffTool.md`](docs/README_DiffTool.md)を参照してください.
 
 ### Step 3: DVC画像管理を使う
 
@@ -83,7 +91,7 @@ make dvc-add-images
 make dvc-push
 ```
 
-詳細はかならず[`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください。
+詳細はかならず[`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください.
 
 ## 環境構成
 
@@ -100,7 +108,7 @@ make dvc-push
 * フォント: Times系 + BIZ UDフォント（ユニバーサルデザイン）
 * 文書構造: 章立て構成（ltjsbook使用）
 
-他の用途で使用する場合は、該当するスタイルファイルに変更してください.
+他の用途で使用する場合は, 該当するスタイルファイルに変更してください.
 
 ## 論文執筆の始め方
 
@@ -144,17 +152,25 @@ README.md           # このファイル (独自内容に置き換え)
 以下は論文執筆に必要なため保持してください:
 
 ```text
-main.tex                    # メイン文書
+main.tex                    # メイン文書 (RSL卒論用)
 RSL_style.sty               # スタイルファイル (RSL卒論用)
 chapters/title.tex          # タイトルページ
 chapters/chapter1.tex       # 章テンプレート
 bibliography/reference.bib  # 参考文献
 .devcontainer/              # 開発環境設定
 .latexmkrc                  # LaTeXビルド設定
+.latexindent.yaml           # LaTeX自動整形設定
 Makefile                    # ビルド・差分管理コマンド
-scripts/                    # 差分PDF生成スクリプト
+scripts/                    # 支援スクリプト
 docs/                       # ワークフロー・ツール説明
 .github/                    # GitHub設定
+.gitignore                  # Git除外設定
+.gitattributes              # Git属性設定
+.dvcignore                  # DVC除外設定（DVC使用時）
+.dvc-exclude                # DVC除外設定（DVC使用時）
+latex.config                # LaTeX設定ファイル
+latex.config.example        # LaTeX設定ファイルテンプレート
+QUICK_START.md              # クイックスタートガイド
 ```
 
 ## 支援ツール
@@ -167,7 +183,7 @@ docs/                       # ワークフロー・ツール説明
 
 ## 搭載機能
 
-* **基本機能**: LaTeX文書ビルド、自動ビルド
+* **基本機能**: LaTeX文書ビルド, 自動ビルド
 * **差分表示**: latexdiffを使用した視覚的差分表示
 * **画像管理**: DVCによる大容量画像ファイル管理（オプション）
 * **日本語対応**: LuaLaTeX + BIZ UDフォント
