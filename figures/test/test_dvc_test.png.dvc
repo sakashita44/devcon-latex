@@ -1,0 +1,5 @@
+outs:
+- md5: 75e50b9202bf6486abfe9e5d70de8af5
+  size: 44366
+  hash: md5
+  path: test_dvc_test.png

@@ -1,0 +1,8 @@
+# DVC管理除外マーキングファイル
+# このファイルに記載された画像ファイルはDVC管理対象から除外されます
+# 形式: 一行につき一つのファイルパス（相対パス）
+
+# 例:
+# figures/logo.png
+# figures/template/sample.jpg
+figures/test/test.png

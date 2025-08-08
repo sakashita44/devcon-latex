@@ -1,5 +1,6 @@
 # Local environment variables for Dev Container
 /.devcontainer/_base/.env
+latex.config
 main.pdf
 .vscode/
 *.pdf
