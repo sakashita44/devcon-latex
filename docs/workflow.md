@@ -1,6 +1,6 @@
 # GitHub Actions Workflow for Calculating Diff
 
-未実装
+未実装: latexdiffの自動化を行いたい (なお，単一ファイル内でしかdiffがとれない??ため，pandocを使用して単一texファイルに変換してからdiffをとる必要がある)
 
 ## 目的
 

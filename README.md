@@ -1,80 +1,63 @@
-# LaTeX-Paper-Template
+# LaTeX論文テンプレート
 
-LaTeXを使用した論文執筆のための個人用テンプレート.
+LuaLaTeX + BIZ UDフォントを使用した日本語論文執筆のためのテンプレートリポジトリです.
 
-## 環境
+## このテンプレートについて
 
-* Docker Devcontainerを使用したLaTeX環境
-* LuaLaTeXエンジンでタイプセット
-* VS CodeのLaTeX Workshopによる統合開発環境
+このリポジトリは, VS CodeとDev Containerを使用してLaTeX論文を執筆するためのテンプレートです. 設定済みの環境で高品質な日本語論文を作成できます.
 
-## 設定概要
+## 使用開始方法
 
-この設定では, `lualatex`を使用してタイプセットしている
+1. このリポジトリをテンプレートとして使用して新しいリポジトリを作成
+2. VS Codeで開き, Dev Container環境を起動
+3. 詳細な使用方法は `.devcontainer/README.md` を参照
 
-* DockerコンテナにはTeX Live 2023が含まれ, 必要なパッケージがプリインストール済み
-* 日本語フォントとしてNoto Serif CJK JPを使用
-* 欧文フォントとしてLatin Modernを使用
+## テンプレート使用時の削除推奨ファイル
 
-## 主な機能
+論文執筆を開始する前に, 以下のサンプルファイルを削除することを推奨します:
 
-* LuaLaTeXによる高品質な日本語・英語混在文書の作成
-* Pandocによる他形式（Markdown, HTML, DOCX等）への変換
-* VS CodeのLaTeX Workshopによるリアルタイムプレビュー
-* GitHub Copilotによる文章改善支援
-
-## ファイル構成
+### サンプルファイル (削除推奨)
 
 ```text
-├── main.tex              # メインのLaTeXファイル
-├── style.sty             # 独自スタイルファイル
-├── chapters/             # 章ごとのファイル
-├── figures/              # 図表ファイル
-├── bibliography/         # 参考文献ファイル
-└── docs/                 # ドキュメント
+sample.tex          # サンプル文書
+sample.pdf          # サンプルPDF
+sample.synctex.gz   # サンプル同期ファイル
+chapters/test.tex   # テスト用章
+figures/test/       # テストフォルダ全体
 ```
 
-## 使用方法
+### このREADME
 
-1. VS Codeでワークスペースを開く
-2. `main.tex`を編集
-3. Ctrl+Alt+B（またはCmd+Option+B）でビルド
-4. VS Code内でPDFプレビューを確認
+このREADME自体もテンプレート説明のため, 削除して独自の内容に置き換えてください.
 
-## 文書変換
+## 保持すべきファイル
 
-PandocによりLaTeX文書を他の形式に変換可能:
+以下のファイルは論文執筆に必要なため保持してください:
 
-```bash
-# Markdownに変換
-pandoc main.tex -o output.md
-
-# HTMLに変換
-pandoc main.tex -o output.html --standalone
-
-# Microsoft Word形式に変換
-pandoc main.tex -o output.docx
+```text
+main.tex                # メイン文書
+RSL_style.sty          # スタイルファイル
+chapters/title.tex     # タイトルページ
+chapters/chapter1.tex  # 章テンプレート
+bibliography/reference.bib  # 参考文献
+.devcontainer/         # 開発環境設定
+.github/               # GitHub設定
+docs/workflow.md       # Git運用説明
 ```
 
-## Git運用
+## 環境概要
 
-指導教員等にレビューしてもらうために, gitのtagを使用した差分表示のワークフローを想定している
+* **エンジン**: LuaLaTeX
+* **日本語フォント**: BIZ UD明朝・ゴシック
+* **欧文フォント**: Latin Modern
+* **参考文献**: BibTeX
+* **開発環境**: VS Code + LaTeX Workshop
 
-* `docs/workflow.md`参照
+## サポートツール
 
-## カスタマイズ
+* Pandoc (文書変換)
+* GitHub Copilot (文章改善支援)
+* LTeX (文法チェック)
+* Git差分表示ワークフロー
 
-`main.tex`の以下の設定を必要に応じて修正:
-
-* フォント設定（日本語・欧文）
-* ページレイアウト
-* ヘッダー・フッターの設定
-* 引用スタイル
-
-GitHub Copilotに対して`.github/copilot-instructions.md`を提示して文章改善を促している
-
-## TODO
-
-* latexdiffを使用して差分を表示するスクリプトを追加
-* 追加のフォントオプションの提供
-* 自動テストとCI/CDの設定
+詳細な使用方法は `.devcontainer/README.md` を参照してください.

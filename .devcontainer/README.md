@@ -1,57 +1,112 @@
-# Dev Container テンプレートリポジトリ
+# LaTeX Development Container 使用方法
 
-Dockerfileを使用しない、拡張可能で高速なDev Container環境のテンプレートです。
+この開発環境は, LuaLaTeX + BIZ UDフォントを使用した高品質な日本語論文執筆のためのDev Container環境です.
 
 ## 前提条件
 
-この開発環境を利用するには、お使いのPC（ホストマシン）に以下のツールがインストールされている必要があります。
-
 * **Visual Studio Code**
-* **VS Code 拡張機能:** Dev Containers
+* **VS Code拡張機能:** Dev Containers
 * **Docker Desktop** または互換性のあるコンテナエンジン
 
-### 【重要】Git over SSH の利用について
+### Git over SSH の設定
 
-コンテナ内からSSH経由でGitリポジトリ（例: `git@github.com:...`）を操作する場合、以下の設定がホストマシン側で完了している必要があります。
+SSH経由でGitリポジトリを操作する場合は, ホストマシンで以下を完了してください:
 
-* ホストマシンの`ssh-agent`が起動していること
-* `ssh-add`コマンド等で、Git用のSSHキーが`ssh-agent`に登録済みであること
+* `ssh-agent`の起動
+* `ssh-add`でSSHキーの登録
 
-この設定により、VSCodeのDev Containers拡張機能がホストのSSH認証機能をコンテナへ安全に転送（フォワーディング）し、コンテナ内での`git pull/push`などが可能になります。
+## セットアップ
 
-## 利用方法
+### ステップ1. コンテナの起動
 
-### ステップ1. (任意) 外部ディレクトリのマウント設定
+1. VS Codeでワークスペースを開く
+2. コマンドパレット(`Ctrl+Shift+P` / `Cmd+Shift+P`)から`Dev Containers: Reopen in Container`を実行
+3. 初回起動時は必要なパッケージの自動インストールが行われる
 
-ホストマシンのディレクトリ（データセットなど）をコンテナ内にマウントしたい場合は、以下の手順を実行します。
+### ステップ2. (任意) 外部ディレクトリのマウント
 
-1. `.devcontainer/`ディレクトリにある`.env.example`ファイルをコピーし、同階層に`.env`という名前でファイルを作成します。
-1. 作成した`.env`ファイルを開き、`ANY_PATH`の値を、マウントしたいホストOS上のディレクトリの絶対パスに書き換えます。
-1. `.env`ファイルは`.gitignore`で追跡対象外となっているため、個人のローカルパスがGitリポジトリにコミットされることはありません。
+データセットなどをマウントする場合:
 
-### ステップ2. コンテナの起動
+1. `.env.example`を`.env`にコピー
+2. `ANY_PATH`を目的のディレクトリパスに変更
 
-1. VS Codeでこのフォルダを開きます。
-1. コマンドパレット (Windows/Linux: `Ctrl+Shift+P`, macOS: `Cmd+Shift+P`) を開き、`Dev Containers: Reopen in Container` を実行します。
-1. 目的の環境を選択すると、コンテナの起動が開始されます。
+## LaTeX文書の作成
 
-## このテンプレートの設計思想
+### タイプセット方法
 
-このテンプレートは、メンテナンス性と再利用性を高めるため、いくつかの思想に基づいて設計されています。
+1. **自動ビルド**: ファイル保存時に自動実行(デフォルト)
+2. **手動ビルド**: `Ctrl+Alt+B` / `Cmd+Option+B`
+3. **PDFプレビュー**: VS Code内のタブで表示
 
-### Dockerfileレス構成
+### 使用エンジンとフォント
 
-Microsoftが提供するビルド済みの公式イメージを`docker-compose.yml`で直接指定することで、`Dockerfile`のビルド処理を省略し、環境構築を高速化しています。追加のCLIツールは`devcontainer.json`の`features`プロパティで宣言的に管理します。
+* **タイプセットエンジン**: LuaLaTeX
+* **日本語フォント**: BIZ UD明朝・ゴシック(Morisawa製)
+* **欧文フォント**: Latin Modern
 
-### `.env`による動的マウント設定
+### ビルドレシピ
 
-`docker-compose.yml`内で`${ANY_PATH}`構文を使用し、`.env`ファイルから環境変数を読み込んでディレクトリマウントを動的に行います。これにより、ホストOSを汚すことなく、プロジェクト固有の環境設定を安全にコンテナへ渡すことができます。
+* **一時ビルド**: `lualatex`のみ(デフォルト)
+* **完全ビルド**: `lualatex → bibtex → lualatex × 2`
 
-### 豊富な開発ツール
+### ファイル構成
 
-各環境には、コード品質向上とチーム開発を支援する拡張機能が事前設定されています：
+```text
+├── main.tex              # メインファイル
+├── RSL_style.sty         # スタイル設定
+├── chapters/             # 章ファイル
+│   ├── title.tex         # タイトルページ
+│   └── chapter1.tex      # 各章
+├── bibliography/         # 参考文献
+│   └── reference.bib     # BibTeXファイル
+└── figures/              # 図表
+```
 
-* **バージョン管理**: GitLens、GitHub統合
-* **コード品質**: スペルチェッカー、TODO管理
-* **ドキュメンテーション**: Markdown拡張、Mermaid図表対応
-* **言語固有**: Python環境では、pylance、python拡張などを追加 (必要に応じて)。
+## 文書変換(Pandoc)
+
+LaTeX文書を他の形式に変換可能:
+
+```bash
+# Markdownに変換
+pandoc main.tex -o output.md
+
+# HTMLに変換
+pandoc main.tex -o output.html --standalone
+
+# Word形式に変換
+pandoc main.tex -o output.docx
+```
+
+## 環境詳細
+
+### インストール済みパッケージ
+
+* TeX Live 2023 full
+* 日本語フォント: Noto CJK, BIZ UD明朝・ゴシック
+* Pandoc, latexdiff, chktex
+
+### VS Code拡張機能
+
+* **LaTeX Workshop**: コンパイル・プレビュー
+* **LTeX**: 文法・スペルチェック(日本語対応)
+* **Pandoc**: 文書変換サポート
+* **GitHub Copilot**: 文章改善支援
+
+### 自動クリーンアップ
+
+ビルド成功時に以下のファイルを自動削除:
+
+* `*.aux`, `*.bbl`, `*.blg`, `*.log`など
+
+## トラブルシューティング
+
+### ビルドエラーの場合
+
+1. VS Codeの問題パネルでエラー確認
+2. 手動で`latexmk -c`実行
+3. コンテナの再起動
+
+### フォントエラーの場合
+
+* BIZ UDフォントが正しくインストールされているか確認
+* 必要に応じて`fc-cache -fv`実行
