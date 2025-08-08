@@ -15,7 +15,7 @@
     },
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y pandoc fonts-noto-cjk fonts-noto-cjk-extra fonts-morisawa-bizud-mincho fonts-morisawa-bizud-gothic texlive-extra-utils texlive-latex-extra texlive-luatex texlive-lang-cjk texlive-fonts-extra locales texlive-science && sudo sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen && sudo locale-gen && sudo update-locale LANG=ja_JP.UTF-8",
+  "postCreateCommand": "sudo apt-get update && sudo apt-get install -y pandoc fonts-noto-cjk fonts-morisawa-bizud-mincho fonts-morisawa-bizud-gothic locales && sudo sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen && sudo locale-gen && sudo update-locale LANG=ja_JP.UTF-8 && sudo apt-get clean && sudo rm -rf /var/lib/apt/lists/*",
   "customizations": {
     "vscode": {
       "settings": {
