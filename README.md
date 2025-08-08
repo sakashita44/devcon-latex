@@ -1,20 +1,95 @@
-# LaTeX論文テンプレート
+# LaTeX論文執筆環境 with DVC
 
-注意: このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です．
-パッケージの要否がわかる場合は，`.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください．
+注意: このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です。
+パッケージの要否がわかる場合は、`.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください。
 
-LaTeXを使用した日本語論文執筆のためのテンプレートリポジトリです.
+LaTeX論文執筆環境です。差分表示やDVC画像管理などの支援ツールを段階的に利用できます。
 
-**詳細な使用方法・環境設定は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください.**
+**コンテナの詳細な使用方法・環境設定は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください。**
+
+[`.devcontainer/README.md`](.devcontainer/README.md)には特に，VS CodeとDev Containerを使用したLaTeX論文執筆環境のセットアップ方法が記載されているため，**目を通しておくことをおすすめします。**
+
+**差分表示等の支援ツールの使用方法は [`docs/workflow.md`](docs/workflow.md) を参照してください。**
+
+**DVC画像管理の詳細な使用方法は [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください。**
 
 ## このテンプレートについて
 
-このリポジトリは, VS CodeとDev Containerを使用してLaTeX論文を執筆するためのテンプレートです. 設定済みの環境で日本語論文を作成できます.
+VS CodeとDev Containerを使用したLaTeX論文執筆環境です。基本的な論文執筆から、差分表示やDVC画像管理まで段階的に機能を利用できます。
 
-## 環境概要
+## 主な特徴
 
-* **対応エンジン**: LuaLaTeX, upLaTeX, pdfLaTeX等（各種学会テンプレート対応）
-* **参考文献**: BibTeX
+* **論文執筆環境**: LuaLaTeX + 日本語フォント対応
+* **段階的機能**: 必要に応じて差分表示・DVC管理を追加
+* **簡単操作**: Makefileによる統一インターフェース
+* **モジュラー設計**: 保守性の高いスクリプト構成
+
+## 段階的な使い方ガイド
+
+### Step 1: とりあえず論文を書く
+
+基本的な論文執筆のみを行う場合:
+
+```bash
+# 必須: 設定ファイル作成
+cp latex.config.example latex.config
+# DVC不使用の場合: DVC_REMOTE_URL等を空白のままにする
+
+# コマンド例
+# LaTeX文書ビルド
+make build
+
+# 自動ビルド（ファイル変更監視）
+make watch
+```
+
+VS Codeのコマンドパレットからもビルド可能．詳細は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください。
+
+**注意**: DVC機能を使わない場合は、`latex.config`でDVC_REMOTE_URLを空白のままにしてください。
+
+### Step 2: 差分表示を使う
+
+論文の変更箇所を視覚的に確認したい場合:
+
+```bash
+# 差分PDF生成（直前の変更を表示）
+make diff
+
+# 特定バージョン間の差分
+make diff-pdf BASE=v1.0.0 CHANGED=HEAD
+```
+
+各種コマンド等の利用例は [`docs/workflow.md`](docs/workflow.md)を参照してください。
+またコマンドの詳細は [`docs/README_DiffTool.md`](docs/README_DiffTool.md)を参照してください。
+
+### Step 3: DVC画像管理を使う
+
+大容量画像ファイルを効率的に管理したい場合:
+
+```bash
+# latex.configでDVC設定を有効化
+# DVC関連設定（例）
+# DVC_REMOTE_NAME=storage
+# DVC_REMOTE_URL=ssh://user@server/path
+
+# DVC初期化
+make dvc-init
+
+# リモートストレージ設定
+make dvc-remote-add NAME=storage URL=ssh://user@server/path
+
+# 画像管理開始
+make dvc-add-images
+make dvc-push
+```
+
+詳細はかならず[`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください。
+
+## 環境構成
+
+* **LaTeX**: LuaLaTeX, upLaTeX, pdfLaTeX等（各種学会テンプレート対応）
+* **参考文献**: BibTeX, Biber
+* **支援ツール**: 差分表示（latexdiff）, DVC画像管理（オプション）
 * **開発環境**: VS Code + LaTeX Workshop
 
 ### 現在の設定について
@@ -27,18 +102,23 @@ LaTeXを使用した日本語論文執筆のためのテンプレートリポジ
 
 他の用途で使用する場合は、該当するスタイルファイルに変更してください.
 
-## クイックスタート
+## 論文執筆の始め方
 
 1. このリポジトリをテンプレートとして使用して新しいリポジトリを作成
 2. VS Codeで開き, Dev Container環境を起動
 3. 論文執筆開始
 
 ```bash
-# 基本的な使用方法
-make help       # 利用可能なコマンド一覧
+# コマンド一覧確認
+make help
+
+# 基本的な論文執筆
 make build      # LaTeX文書をビルド
 make watch      # ファイル変更を監視して自動ビルド
-make diff-pdf BASE=v1.0.0 CHANGED=HEAD  # 差分PDF生成
+
+# 必要に応じて追加機能を利用
+make diff       # 差分表示
+make dvc-init   # DVC画像管理
 ```
 
 ## 他のテンプレートを使用する場合
@@ -77,20 +157,29 @@ docs/                       # ワークフロー・ツール説明
 .github/                    # GitHub設定
 ```
 
-## サポートツール
+## 支援ツール
 
 * Pandoc (文書変換)
 * GitHub Copilot (文章改善支援)
 * LTeX (文法チェック)
-* Git差分表示ワークフロー
+* latexdiff (差分表示)
+* DVC (画像管理, オプション)
 
-## 主な機能
+## 搭載機能
 
-* **LaTeX文書ビルド**: `make build`, `make watch`
-* **差分PDF生成**: latexdiffを使用した視覚的差分表示
-* **Git統合**: バージョン間差分の自動計算
+* **基本機能**: LaTeX文書ビルド、自動ビルド
+* **差分表示**: latexdiffを使用した視覚的差分表示
+* **画像管理**: DVCによる大容量画像ファイル管理（オプション）
 * **日本語対応**: LuaLaTeX + BIZ UDフォント
 
-詳細な機能説明・設定方法・トラブルシューティングは [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください.
+## 詳細情報とガイド
 
-また，差分PDF生成等については[`docs/workflow.md`](docs/workflow.md) や [`docs/README_DiffTool.md`](docs/README_DiffTool.md) を参照してください.
+基本的な論文執筆環境の詳細は [`.devcontainer/README.md`](.devcontainer/README.md) を参照してください.
+
+段階的な機能利用については以下を参照:
+
+* **基本執筆**: このREADMEの「段階的な使い方ガイド Step 1」
+* **差分表示**: [`docs/workflow.md`](docs/workflow.md) や [`docs/README_DiffTool.md`](docs/README_DiffTool.md)
+* **DVC画像管理**: [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) - DVCを使用するかの判断基準と詳細手順
+* **設定カスタマイズ**: [`docs/Configuration_Examples.md`](docs/Configuration_Examples.md)
+* **スクリプト仕様**: [`scripts/README.md`](scripts/README.md)
