@@ -2,7 +2,9 @@
 
 この開発環境は, 複数のLaTeXエンジンに対応した高品質な論文執筆のためのDev Container環境です.
 
-**現在の設定**: Robot Safety Lab（RSL）卒業論文向けに最適化されています.
+差分PDFの生成等については [`docs/workflow.md`](docs/workflow.md) や [`docs/README_DiffTool.md`](docs/README_DiffTool.md) を参照してください.
+
+**初期設定**: Robot Safety Lab（RSL）卒業論文向けに最適化されています.
 
 ## 前提条件
 
@@ -54,6 +56,11 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
     * LaTeX Workshop拡張機能のタブ(デフォルトで左側の柱のアイコン)から
         * `Build LaTeX project`を展開
         * 任意のレシピを選択してビルド
+    * makeコマンドを使用したビルド
+        * `make build`を実行
+    * 変更を検知した場合の自動ビルド
+        * `make watch`を実行 (ターミナルを起動したままにしておく必要があります)
+        * ファイル変更を監視して自動ビルド
 3. **PDFプレビュー**: VS Code内のタブで表示
 
 ### コードフォーマット
@@ -153,7 +160,31 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
 2. `Dev Containers: Rebuild Container`を実行
 3. コンテナが再ビルドされるまで待機
 
-#### ステップ3: スタイルファイルとmain.texの変更
+#### ステップ3: .latexmkrcの設定変更
+
+`.latexmkrc`ファイルでエンジン固有の設定を変更:
+
+```perl
+# LuaLaTeX用（現在のデフォルト・RSL卒論用）
+$latex = 'lualatex %O -synctex=1 -interaction=nonstopmode %S';
+$bibtex = 'bibtex %O %B';
+$pdf_mode = 4;  # LuaLaTeX
+
+# upLaTeX用
+# $latex = 'uplatex %O -synctex=1 -interaction=nonstopmode %S';
+# $bibtex = 'pbibtex %O %B';
+# $dvipdf = 'dvipdfmx %O -o %D %S';
+# $pdf_mode = 3;  # DVI -> PDF
+
+# pdfLaTeX用
+# $pdflatex = 'pdflatex %O -synctex=1 -interaction=nonstopmode %S';
+# $bibtex = 'bibtex %O %B';
+# $pdf_mode = 1;  # pdfLaTeX
+```
+
+**注意**: `.latexmkrc`の設定は`make build`, `make watch`, `make diff-pdf`コマンドでも使用されます.
+
+#### ステップ4: スタイルファイルとmain.texの変更
 
 1. `RSL_style.sty`を削除または学会指定のスタイルファイルに置き換え
 2. `main.tex`のドキュメントクラスを変更
@@ -273,6 +304,7 @@ pandoc main.tex -o output.docx
 
 * `RSL_style.sty`を削除または置き換え
 * `main.tex`のドキュメントクラスを変更
+    * あるいは`main.tex`を学会指定のテンプレートに置き換え
 * 必要に応じてフォント設定を調整
 
 ### RSL卒論での使用（デフォルト設定）
