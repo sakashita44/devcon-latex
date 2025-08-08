@@ -32,7 +32,15 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
 データセットなどをマウントする場合:
 
 1. `.env.example`を`.env`にコピー
-2. `ANY_PATH`を目的のディレクトリパスに変更
+2. `ANY_PATH`を目的のディレクトリパスに変更 (変数名も適宜変更)
+3. `.devcontainer/devcontainer.json`の`mounts`セクションを更新
+
+```json
+// 例: ANY_PATHを/mnt/any_pathにマウントする
+"mounts": [
+    "source=${localEnv:ANY_PATH},target=/mnt/any_path,type=bind,consistency=cached"
+]
+```
 
 ## LaTeX文書の作成
 
