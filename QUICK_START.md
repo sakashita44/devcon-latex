@@ -88,6 +88,7 @@
 - [ ] VS Codeのコマンドパレット（`Ctrl+Shift+P`）→「LaTeX Workshop: Build LaTeX project」
 - [ ] または, ターミナルで`make build`を実行
 - [ ] エラーなく完了することを確認
+- [ ] (必要に応じて)一時ファイルのクリーンアップ: `make clean`を実行
 
 ### 📋 異なるテンプレート使用時のTips
 
