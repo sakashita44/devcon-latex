@@ -1,6 +1,6 @@
 # LaTeX論文テンプレート
 
-LuaLaTeX + BIZ UDフォントを使用した日本語論文執筆のためのテンプレートリポジトリです.
+LuaLaTeXを使用した日本語論文執筆のためのテンプレートリポジトリです.
 
 詳細な使用方法は [**`.devcontainer/README.md`**](.devcontainer/README.md) を参照してください.
 
