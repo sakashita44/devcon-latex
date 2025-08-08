@@ -56,7 +56,7 @@ restore_all_to_git() {
     for dir in $dvc_managed_dirs; do
         if [ -d "$dir" ]; then
             echo "$dir/:"
-            find "$dir" -name "*.dvc" 2>/dev/null | while read dvc_file; do
+            for dvc_file in $(find "$dir" -name "*.dvc" 2>/dev/null); do
                 file=${dvc_file%.dvc}
                 echo "  $file"
                 file_count=$((file_count + 1))
@@ -104,7 +104,7 @@ remove_dvc_completely() {
     fi
 
     # 全ファイルをGitに復元
-    restore_all_to_git "figures"
+    restore_all_to_git "$1"
 
     # DVC設定削除
     print_info "DVC設定を削除中..."
@@ -129,7 +129,7 @@ case "${1:-}" in
         restore_all_to_git "$2"
         ;;
     "remove")
-        remove_dvc_completely
+        remove_dvc_completely "$2"
         ;;
     *)
         echo "使用法: $0 {file|all|remove} [file_path|dvc_managed_dirs]"

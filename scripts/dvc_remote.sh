@@ -96,6 +96,18 @@ list_remotes() {
     fi
 }
 
+# DVCリモート接続チェック用ヘルパー関数
+check_dvc_connection() {
+    local status_output="$1"
+    if echo "$status_output" | grep -q "new:\|modified:\|deleted:\|Data and pipelines are up to date\|not in cache"; then
+        print_success "リモート接続: 正常"
+    else
+        print_error "リモート接続: 失敗"
+        print_info "認証情報やURLを確認してください"
+        exit 1
+    fi
+}
+
 # リモート接続テスト
 test_remote() {
     local remote_name="$1"
@@ -105,13 +117,9 @@ test_remote() {
     if [ -z "$remote_name" ]; then
         # デフォルトリモートをテスト
         print_info "デフォルトリモートの接続をテスト中..."
-        if dvc status --cloud 2>&1 | grep -q "new:\|modified:\|deleted:\|Data and pipelines are up to date\|not in cache"; then
-            print_success "リモート接続: 正常"
-        else
-            print_error "リモート接続: 失敗"
-            print_info "認証情報やURLを確認してください"
-            exit 1
-        fi
+        local status_output
+        status_output="$(dvc status --cloud 2>&1)"
+        check_dvc_connection "$status_output"
     else
         # 指定リモートをテスト
         if ! dvc remote list | grep -q "^$remote_name"; then
@@ -120,10 +128,11 @@ test_remote() {
         fi
 
         print_info "リモート $remote_name の接続をテスト中..."
-        if dvc status --cloud -r "$remote_name" 2>&1 | grep -q "new:\|modified:\|deleted:\|Data and pipelines are up to date\|not in cache"; then
-            print_success "リモート接続: 正常"
-        else
-            print_error "リモート接続: 失敗"
+        local status_output
+        status_output="$(dvc status --cloud -r "$remote_name" 2>&1)"
+        check_dvc_connection "$status_output"
+    fi
+}
             print_info "認証情報やURLを確認してください"
             exit 1
         fi

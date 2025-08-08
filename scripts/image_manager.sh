@@ -17,7 +17,10 @@ show_image_changes() {
     for dir in $dvc_managed_dirs; do
         if [ -d "$dir" ]; then
             for ext in $image_extensions; do
-                find "$dir" -type f -name "*.$ext" 2>/dev/null | while read file; do
+                while read file; do
+                    if [ -z "$file" ]; then
+                        continue
+                    fi
                     if ! is_dvc_managed "$file"; then
                         if is_excluded "$file"; then
                             echo "  除外: $file （DVC除外マーク済み）"
@@ -26,7 +29,7 @@ show_image_changes() {
                             found=1
                         fi
                     fi
-                done
+                done < <(find "$dir" -type f -name "*.$ext" 2>/dev/null)
             done
         fi
     done
