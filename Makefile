@@ -1,33 +1,112 @@
 # LaTeX論文差分計算用Makefile
+# DVC統合バージョン
 
-.PHONY: diff diff-pdf clean help test-tag build watch
+# 設定ファイルの読み込み
+ifneq (,$(wildcard latex.config))
+    include latex.config
+    export
+endif
+
+# デフォルト設定
+MAIN_TEX ?= main.tex
+IMAGE_EXTENSIONS ?= png jpg jpeg pdf eps svg
+DVC_MANAGED_DIRS ?= figures
+DVC_REMOTE_NAME ?= storage
+DVC_REMOTE_URL ?=
+LATEX_ENGINE ?= lualatex
+BIBTEX_ENGINE ?= bibtex
+ENABLE_LATEXINDENT ?= true
+
+.PHONY: diff diff-pdf clean help test-tag build build-safe watch
+.PHONY: dvc-init dvc-status dvc-check-connection dvc-add-images _check-dvc-initialized
+.PHONY: validate validate-git validate-latex validate-dvc validate-tags
+.PHONY: show-image-status dvc-exclude-image dvc-include-image
+.PHONY: dvc-restore-file dvc-restore-all dvc-remove
+.PHONY: dvc-remote-add dvc-remote-list dvc-remote-test dvc-push dvc-pull dvc-fetch
 
 # デフォルトターゲット
 help:
 	@echo "利用可能なコマンド:"
-	@echo "  make build      - LaTeX文書をビルド (main.tex)"
+	@echo ""
+	@echo "== 基本機能 =="
+	@echo "  make build      - LaTeX文書をビルド ($(MAIN_TEX))"
+	@echo "  make build-safe - バリデーション付きビルド"
 	@echo "  make watch      - ファイル変更を監視して自動ビルド"
+	@echo "  make clean      - 出力ファイルをクリーンアップ"
+	@echo ""
+	@echo "== 差分生成 =="
 	@echo "  make diff       - 直前の変更を表示"
 	@echo "  make diff-pdf   - 指定されたバージョン間の視覚的差分PDFを生成"
+	@echo ""
+	@echo "== DVC機能 =="
+	@echo "  make dvc-init           - DVCを初期化し既存画像を管理対象に追加"
+	@echo "  make dvc-status         - DVC状態を確認"
+	@echo "  make dvc-check-connection - DVCリモート接続を確認"
+	@echo "  make dvc-add-images     - 新規・変更画像をDVC管理に追加"
+	@echo "  make show-image-status  - 画像ファイルの管理状況を表示"
+	@echo "  make dvc-exclude-image FILE=path - 画像をDVC除外リストに追加"
+	@echo "  make dvc-include-image FILE=path - 画像をDVC除外リストから削除"
+	@echo "  make dvc-restore-file FILE=path  - 指定ファイルをGit管理に復元"
+	@echo "  make dvc-restore-all    - 全DVC管理ファイルをGit管理に復元"
+	@echo "  make dvc-remove         - DVC設定を完全削除"
+	@echo ""
+	@echo "== DVCリモート管理 =="
+	@echo "  make dvc-remote-add NAME=name URL=url - リモート追加"
+	@echo "  make dvc-remote-list    - リモート一覧表示"
+	@echo "  make dvc-remote-test    - リモート接続テスト"
+	@echo "  make dvc-push           - データをリモートにプッシュ"
+	@echo "  make dvc-pull           - データをリモートからプル"
+	@echo "  make dvc-fetch          - リモートデータの確認"
+	@echo ""
+	@echo "== バリデーション =="
+	@echo "  make validate           - 全体の状態確認（Git, LaTeX, DVC）"
+	@echo "  make validate-git       - Git状態確認"
+	@echo "  make validate-latex     - LaTeXファイル確認"
+	@echo "  make validate-dvc       - DVC状態確認"
+	@echo "  make validate-tags      - タグ重複確認"
+	@echo ""
+	@echo "== その他 =="
 	@echo "  make test-tag   - テスト用のタグを作成"
-	@echo "  make clean      - 出力ファイルをクリーンアップ"
 	@echo "  make help       - このヘルプを表示"
+	@echo ""
+	@echo "== ドキュメント =="
+	@echo "  docs/DVC_Workflow.md           - DVC統合ワークフローの詳細"
+	@echo "  docs/Configuration_Examples.md - 設定例とベストプラクティス"
+	@echo "  scripts/README.md              - スクリプト詳細仕様"
 	@echo ""
 	@echo "差分PDF生成の使用例:"
 	@echo "  make diff-pdf BASE=v1.0.0 CHANGED=test"
 	@echo "  make diff-pdf BASE=HEAD~1 CHANGED=HEAD"
+	@echo ""
+	@echo "DVC初期化の使用例:"
+	@echo "  make dvc-init"
+	@echo "  make dvc-init DVC_REMOTE_URL=s3://your-bucket/latex-figures"
+	@echo ""
+	@echo "設定ファイル (latex.config) の例:"
+	@echo "  IMAGE_EXTENSIONS=png jpg pdf eps"
+	@echo "  DVC_MANAGED_DIRS=figures images data"
+	@echo "  DVC_REMOTE_URL=ssh://user@server/path/to/storage"
 
 # LaTeX文書ビルド
 build:
 	@echo "LaTeX文書をビルド中..."
-	@latexmk main.tex
-	@echo "ビルド完了: main.pdf"
+	@latexmk $(MAIN_TEX)
+	@echo "ビルド完了: $(MAIN_TEX:.tex=.pdf)"
+
+# バリデーション付きビルド
+build-safe:
+	@echo "=== 安全ビルド（バリデーション付き） ==="
+	@$(MAKE) validate-latex
+	@echo ""
+	@echo "LaTeX文書をビルド中..."
+	@latexmk $(MAIN_TEX)
+	@echo "ビルド完了: $(MAIN_TEX:.tex=.pdf)"
 
 # ファイル変更監視ビルド
 watch:
 	@echo "ファイル変更監視モード開始..."
 	@echo "Ctrl+C で停止"
-	@latexmk -pvc main.tex
+	@latexmk -pvc $(MAIN_TEX)
 
 # Git差分表示
 diff:
@@ -42,7 +121,7 @@ diff-pdf:
 		exit 1; \
 	fi
 	@echo "差分PDF生成中: $(BASE) → $(CHANGED)"
-	@./scripts/generate_diff.sh main.tex $(BASE) $(CHANGED)
+	@./scripts/generate_diff.sh $(MAIN_TEX) $(BASE) $(CHANGED)
 
 # テスト用タグ作成
 test-tag:
@@ -60,3 +139,238 @@ clean:
 	@latexmk -C
 	@rm -rf diff_output
 	@echo "クリーンアップ完了"
+
+# =============================================================================
+# DVC関連機能
+# =============================================================================
+
+# DVC初期化確認
+_check-dvc-initialized:
+	@if [ ! -d ".dvc" ]; then \
+		echo "エラー: DVCが初期化されていません"; \
+		echo "まず 'make dvc-init' を実行してください"; \
+		exit 1; \
+	fi
+
+# DVC初期化とセットアップ
+dvc-init:
+	@echo "=== DVC初期化とセットアップ ==="
+	@echo "設定:"
+	@echo "  管理対象ディレクトリ: $(DVC_MANAGED_DIRS)"
+	@echo "  画像ファイル拡張子: $(IMAGE_EXTENSIONS)"
+	@echo "  リモート名: $(DVC_REMOTE_NAME)"
+	@if [ -n "$(DVC_REMOTE_URL)" ]; then \
+		echo "  リモートURL: $(DVC_REMOTE_URL)"; \
+	else \
+		echo "  リモートURL: 未設定（後で手動設定が必要）"; \
+	fi
+	@echo
+	@read -p "続行しますか? [y/N]: " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "キャンセルしました"; \
+		exit 1; \
+	fi
+	@./scripts/dvc_init.sh "$(DVC_REMOTE_NAME)" "$(DVC_REMOTE_URL)" "$(DVC_MANAGED_DIRS)" "$(IMAGE_EXTENSIONS)"
+	@echo "=== DVC初期化完了 ==="
+	@echo "既存画像がDVC管理下に追加されました"
+
+# DVC状態確認
+dvc-status:
+	@./scripts/dvc_validator.sh status "$(DVC_MANAGED_DIRS)"
+
+# DVC接続確認
+dvc-check-connection:
+	@./scripts/dvc_validator.sh check-connection "$(DVC_REMOTE_NAME)"
+
+# DVC画像追加（新規・変更画像の自動検出と追加）
+dvc-add-images:
+	@echo "=== DVC画像追加 ==="
+	@$(MAKE) _check-dvc-initialized
+	@echo "新規・変更画像ファイルを検索中..."
+	@./scripts/image_manager.sh show-changes "$(DVC_MANAGED_DIRS)" "$(IMAGE_EXTENSIONS)"
+	@echo ""
+	@echo "⚠ 注意: DVC管理に追加すると画像ファイルはGit管理から除外されます"
+	@echo "        リポジトリ公開時はSSHリモートアクセスが必要になります"
+	@echo ""
+	@read -p "これらの画像をDVC管理に追加しますか? [y/N]: " confirm; \
+	if [ "$$confirm" != "y" ] && [ "$$confirm" != "Y" ]; then \
+		echo "キャンセルしました"; \
+		exit 1; \
+	fi
+	@./scripts/image_manager.sh add-safe "$(DVC_MANAGED_DIRS)" "$(IMAGE_EXTENSIONS)"
+	@echo "=== DVC画像追加完了 ==="
+
+# =============================================================================
+# 画像管理機能（公開対応）
+# =============================================================================
+
+# 画像をDVC除外リストに追加
+dvc-exclude-image:
+	@if [ -z "$(FILE)" ]; then \
+		echo "エラー: FILE パラメータが必要です"; \
+		echo "使用例: make dvc-exclude-image FILE=figures/logo.png"; \
+		exit 1; \
+	fi
+	@if [ ! -f "$(FILE)" ]; then \
+		echo "エラー: ファイル $(FILE) が見つかりません"; \
+		exit 1; \
+	fi
+	@bash -c 'source ./scripts/common.sh && add_to_exclude_list "$(FILE)"'
+
+# 画像をDVC除外リストから削除
+dvc-include-image:
+	@if [ -z "$(FILE)" ]; then \
+		echo "エラー: FILE パラメータが必要です"; \
+		echo "使用例: make dvc-include-image FILE=figures/logo.png"; \
+		exit 1; \
+	fi
+	@bash -c 'source ./scripts/common.sh && remove_from_exclude_list "$(FILE)"'
+
+# 画像ファイルの管理状況表示
+show-image-status:
+	@./scripts/image_manager.sh show-status "$(DVC_MANAGED_DIRS)" "$(IMAGE_EXTENSIONS)"
+
+# DVC復元機能
+dvc-restore-file:
+	@if [ -z "$(FILE)" ]; then \
+		echo "エラー: FILE パラメータが必要です"; \
+		echo "使用例: make dvc-restore-file FILE=figures/image.png"; \
+		exit 1; \
+	fi
+	@./scripts/dvc_restore.sh file "$(FILE)"
+
+dvc-restore-all:
+	@./scripts/dvc_restore.sh all "$(DVC_MANAGED_DIRS)"
+
+dvc-remove:
+	@./scripts/dvc_restore.sh remove
+
+# =============================================================================
+# DVCリモート管理機能
+# =============================================================================
+
+# リモート追加
+dvc-remote-add:
+	@if [ -z "$(NAME)" ] || [ -z "$(URL)" ]; then \
+		echo "エラー: NAME と URL パラメータが必要です"; \
+		echo "使用例: make dvc-remote-add NAME=storage URL=ssh://user@server/path"; \
+		exit 1; \
+	fi
+	@./scripts/dvc_remote.sh add "$(NAME)" "$(URL)"
+
+# リモート一覧
+dvc-remote-list:
+	@./scripts/dvc_remote.sh list
+
+# リモート接続テスト
+dvc-remote-test:
+	@./scripts/dvc_remote.sh test "$(REMOTE)"
+
+# データプッシュ
+dvc-push:
+	@./scripts/dvc_remote.sh push "$(REMOTE)"
+
+# データプル
+dvc-pull:
+	@./scripts/dvc_remote.sh pull "$(REMOTE)"
+
+# データフェッチ
+dvc-fetch:
+	@./scripts/dvc_remote.sh fetch "$(REMOTE)"
+
+# =============================================================================
+# バリデーション機能
+# =============================================================================
+
+# 全体バリデーション
+validate:
+	@echo "=== 全体バリデーション ==="
+	@echo "プロジェクトの状態を確認中..."
+	@echo ""
+	@$(MAKE) validate-git
+	@echo ""
+	@$(MAKE) validate-latex
+	@echo ""
+	@if [ -d ".dvc" ]; then \
+		$(MAKE) validate-dvc; \
+	else \
+		echo "== DVC状態 =="; \
+		echo "DVC: 未初期化 (オプション機能)"; \
+	fi
+	@echo ""
+	@echo "=== バリデーション完了 ==="
+
+# Git状態確認
+validate-git:
+	@echo "== Git状態確認 =="
+	@if git rev-parse --git-dir >/dev/null 2>&1; then \
+		echo "✓ Gitリポジトリ: 初期化済み"; \
+		uncommitted=$$(git status --porcelain | wc -l); \
+		if [ $$uncommitted -eq 0 ]; then \
+			echo "✓ 作業ディレクトリ: クリーン"; \
+		else \
+			echo "⚠ 作業ディレクトリ: $$uncommitted 個の未コミット変更"; \
+			git status --short | head -5 | sed 's/^/    /'; \
+			if [ $$uncommitted -gt 5 ]; then \
+				echo "    ... 他 $$(($$uncommitted - 5)) 個"; \
+			fi; \
+		fi; \
+		current_branch=$$(git branch --show-current); \
+		echo "✓ 現在のブランチ: $$current_branch"; \
+		tag_count=$$(git tag | wc -l); \
+		echo "✓ タグ数: $$tag_count"; \
+	else \
+		echo "✗ Gitリポジトリが初期化されていません"; \
+		exit 1; \
+	fi
+
+# LaTeX状態確認
+validate-latex:
+	@echo "== LaTeX状態確認 =="
+	@if [ -f "$(MAIN_TEX)" ]; then \
+		echo "✓ メインファイル: $(MAIN_TEX) 存在"; \
+		if command -v latexmk >/dev/null 2>&1; then \
+			echo "✓ LaTeX環境: latexmk 利用可能"; \
+		else \
+			echo "✗ LaTeX環境: latexmk が見つかりません"; \
+			exit 1; \
+		fi; \
+		if [ "$(ENABLE_LATEXINDENT)" = "true" ] && command -v latexindent >/dev/null 2>&1; then \
+			echo "✓ コードフォーマット: latexindent 利用可能"; \
+		elif [ "$(ENABLE_LATEXINDENT)" = "true" ]; then \
+			echo "⚠ コードフォーマット: latexindent が見つかりません"; \
+		else \
+			echo "- コードフォーマット: 無効"; \
+		fi; \
+		tex_files=$$(find . -name "*.tex" | wc -l); \
+		echo "✓ TeXファイル数: $$tex_files"; \
+	else \
+		echo "✗ メインファイル $(MAIN_TEX) が見つかりません"; \
+		exit 1; \
+	fi
+
+# DVC状態確認
+validate-dvc:
+	@./scripts/dvc_validator.sh validate "$(DVC_MANAGED_DIRS)"
+
+# タグ重複確認
+validate-tags:
+	@if [ -n "$(TAG)" ]; then \
+		echo "== タグ重複確認 =="; \
+		if git tag | grep -q "^$(TAG)$$"; then \
+			echo "✗ タグ $(TAG) は既に存在します"; \
+			echo "既存のタグ:"; \
+			git tag | grep "$(TAG)" | sed 's/^/  /'; \
+			exit 1; \
+		else \
+			echo "✓ タグ $(TAG) は利用可能です"; \
+		fi; \
+	else \
+		echo "== タグ確認 =="; \
+		tag_count=$$(git tag | wc -l); \
+		echo "現在のタグ数: $$tag_count"; \
+		if [ $$tag_count -gt 0 ]; then \
+			echo "最新のタグ:"; \
+			git tag | tail -5 | sed 's/^/  /'; \
+		fi; \
+	fi
