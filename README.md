@@ -1,5 +1,8 @@
 # LaTeX論文テンプレート
 
+注意: このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です．
+パッケージの要否がわかる場合は，`.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください．
+
 LuaLaTeXを使用した日本語論文執筆のためのテンプレートリポジトリです.
 
 詳細な使用方法は [**`.devcontainer/README.md`**](.devcontainer/README.md) を参照してください.
@@ -56,7 +59,7 @@ docs/workflow.md            # Git運用説明
 
 * **対応エンジン**: LuaLaTeX, upLaTeX, pdfLaTeX等（各種学会テンプレート対応）
 * **参考文献**: BibTeX
-* **開発環境**: VS Code + LaTeX Workshop
+* **開発環境**: VS Code + Dev Container (LaTeX Workshopはコンテナ内で動作)
 
 ### 現在の設定について
 

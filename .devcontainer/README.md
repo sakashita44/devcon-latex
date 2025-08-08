@@ -183,9 +183,12 @@ pandoc main.tex -o output.docx
 
 ### インストール済みパッケージ
 
-* TeX Live 2023 full（全エンジン対応）
-* 日本語フォント: Noto CJK, BIZ UD明朝・ゴシック（RSL用）
-* Pandoc, latexdiff, chktex
+* **TeX Live 2023 full**（ベースイメージに含まれる・全エンジン対応）
+* **追加インストール**:
+    * Pandoc（文書変換）
+    * Noto CJK fonts（汎用日本語フォント）
+    * BIZ UD fonts（RSL用・ユニバーサルデザインフォント）
+    * locales（日本語ロケール設定）
 
 ### VS Code拡張機能
 
