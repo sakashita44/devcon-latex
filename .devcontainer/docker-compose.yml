@@ -2,7 +2,8 @@ version: '3.8'
 
 services:
   devcontainer:
-    image: mcr.microsoft.com/devcontainers/base:ubuntu-22.04
+    # LaTeX環境が整ったイメージを使用
+    image: texlive/texlive:latest
     volumes:
       # ワークスペースのマウント
       - ../:/workspaces/:cached
@@ -18,6 +19,8 @@ services:
 
     environment:
       - SHELL=/bin/bash
+      - LANG=ja_JP.UTF-8
+      - LC_ALL=ja_JP.UTF-8
       # .envファイルから環境変数を読み込み
       # - USER_EMAIL=${USER_EMAIL}
       # - API_BASE_URL=${API_BASE_URL}

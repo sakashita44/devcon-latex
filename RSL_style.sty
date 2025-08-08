@@ -1,0 +1,130 @@
+% RSL (Robot Safety Lab) Style
+\ProvidesPackage{style}
+
+% =============================================================================
+% LaTeX Style Package for LuaLaTeX with Times Fonts and BIZ UD Japanese Fonts
+% =============================================================================
+%
+% 互換性情報 (Compatibility Information):
+%
+% エンジン (Engine):
+%   - LuaLaTeX (推奨 / Recommended)
+%   - LuaHBTeX (TeX Live 2025/dev 以降 / TeX Live 2025/dev or later)
+%
+% ドキュメントクラス (Document Classes):
+%   - article (テスト済み / Tested)
+%   - report (互換性あり / Compatible)
+%   - book (互換性あり / Compatible)
+%   - その他のクラス (Other classes): 章構造なしの場合は要調整
+%
+% フォント要件 (Font Requirements):
+%   欧文フォント (Latin Fonts):
+%     - TeX Gyre Termes (Times系 / Times-like)
+%     - TeX Gyre Heros (Helvetica系 / Helvetica-like)
+%     - TeX Gyre Cursor (Courier系 / Courier-like)
+%     - TeX Gyre Termes Math (数学フォント / Math font)
+%
+%   日本語フォント (Japanese Fonts):
+%     - BIZ UDPMincho (BIZ UDP明朝)
+%     - BIZ UDPGothic (BIZ UDPゴシック)
+%
+% OS互換性 (OS Compatibility):
+%   - Ubuntu/Debian (テスト済み / Tested)
+%   - その他のLinux (互換性あり / Compatible)
+%   - macOS (フォント要インストール / Fonts need to be installed)
+%   - Windows (フォント要インストール / Fonts need to be installed)
+%
+% 必要パッケージ (Required Packages):
+%   - luatexja, luatexja-fontspec (日本語処理 / Japanese processing)
+%   - fontspec, unicode-math (フォント処理 / Font processing)
+%   - amsmath, graphicx, geometry など (標準パッケージ / Standard packages)
+%
+% 注意事項 (Notes):
+%   - XeLaTeX, pLaTeX, upLaTeX では動作しません
+%   - BIZ UDフォントはユニバーサルデザインフォントです
+%   - Times系フォントで学術文書に適した組版を提供します
+%
+% 作成日 (Created): 2025年8月5日
+% 最終更新 (Last Updated): 2025年8月5日
+% =============================================================================
+
+% LuaLaTeX用パッケージ
+\usepackage{graphicx} % 画像の挿入（LuaLaTeX用）
+\usepackage{amsmath} % 数式のサポート
+\usepackage{bm} % 太字の数式
+\usepackage{here} % 図や表の位置指定
+\usepackage{float} % 図や表の位置指定
+\usepackage{booktabs} % 表の装飾
+\usepackage{array} % 配列の高さ設定
+\usepackage{multirow} % 表の行結合
+\usepackage{pifont} % 丸付き文字
+\usepackage{cite} % 参考文献の引用
+\usepackage{siunitx} % 単位の記載
+\usepackage[hang,small,bf]{caption} % キャプションの設定
+\usepackage[subrefformat=parens]{subcaption} % サブキャプションの設定
+\captionsetup{compatibility=false}
+\usepackage{hyperref} % ハイパーリンクの設定（LuaLaTeX用）
+\usepackage{fancyhdr} % ヘッダーの設定
+
+% Ubuntu環境で利用可能なフォント設定（Times系）
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Termes} % Times系明朝体（TeX Gyre Termes）
+\setsansfont{TeX Gyre Heros} % Helvetica系ゴシック体（TeX Gyre Heros）
+\setmonofont{TeX Gyre Cursor} % Courier系等幅フォント（TeX Gyre Cursor）
+
+% 数学フォントもTimes系に設定（オプション）
+\usepackage{unicode-math}
+\setmathfont{TeX Gyre Termes Math}
+
+% 日本語フォント設定（BIZ UDP系 - プロポーショナル版）
+\usepackage{luatexja-fontspec}
+\setmainjfont{BIZ UDPMincho} % 日本語明朝体（BIZ UDP明朝）
+\setsansjfont{BIZ UDPGothic} % 日本語ゴシック体（BIZ UDPゴシック）
+
+% article用の番号設定（chapterではなくsection使用）
+\numberwithin{equation}{section} % 数式番号をセクションごとにリセット
+\numberwithin{figure}{section} % 図番号をセクションごとにリセット
+\numberwithin{table}{section} % 表番号をセクションごとにリセット
+\renewcommand{\figurename}{Fig.\ } % 図のキャプションをFig.に変更
+\renewcommand{\tablename}{Table\ } % 表のキャプションをTableに変更
+\setlength{\baselineskip}{10pt} % 行間の設定
+
+\setcounter{tocdepth}{2} % 目次の深さ設定
+
+% article用の数式番号スタイル設定
+\renewcommand{\theequation}{\thesection.\arabic{equation}}
+
+\makeatletter
+\DeclareRobustCommand\cite{\unskip
+    \@ifnextchar[{\@tempswatrue\@citex}{\@tempswafalse\@citex[]}}
+\def\@cite#1#2{$^{\hbox{\scriptsize({#1\if@tempswa , #2\fi})}}$}
+\def\@biblabel#1{(#1)}
+\makeatother
+
+% レイアウト設定
+\setlength{\parindent}{1em} % 段落インデント（emはフォントサイズに相対）
+\setlength{\parskip}{0.5\baselineskip} % 段落間隔
+
+% article用の図表番号スタイル設定
+\renewcommand{\thefigure}{\thesection.\arabic{figure}} % 図番号のスタイル設定
+\renewcommand{\thetable}{\thesection.\arabic{table}} % 表番号のスタイル設定
+
+\hypersetup{
+    setpagesize=false,
+    bookmarksnumbered=true,
+    bookmarksopen=true,
+    colorlinks=true,
+    linkcolor=black,
+    citecolor=black,
+}
+
+% ヘッダー設定を改善
+\setlength{\headheight}{15pt} % ヘッダー高さを適切に設定
+\pagestyle{fancy}
+\chead{} % 中央ヘッダーの設定
+\lhead[]{\leftmark} % 左ヘッダーの設定
+\rhead[\rightmark]{} % 右ヘッダーの設定
+
+% article用のマーク設定（chaptermarkの代替）
+\renewcommand{\sectionmark}[1]{\markboth{第\ \thesection\ 節  ~#1}{}}
+\renewcommand{\subsectionmark}[1]{\markright{\thesubsection  #1}{}}
