@@ -9,6 +9,9 @@
 このリポジトリで作成されるコンテナのイメージサイズは8GBを超える重量級です.
 パッケージの要否がわかる場合は, `.devcontainer/devcontainer.json`の`postCreateCommand`を編集して不要なパッケージを削除してください.
 
+また本リポジトリのドキュメント・スクリプトの大部分はAIによって生成されています．
+本リポジトリの利用により生じた問題については一切の責任を負いませんので，あらかじめご了承ください．
+
 ## 概要
 
 LaTeX論文執筆環境です. 差分表示やDVC画像管理などの支援ツールを段階的に利用できます.
@@ -21,16 +24,12 @@ LaTeX論文執筆環境です. 差分表示やDVC画像管理などの支援ツ�
 
 **DVC画像管理の詳細な使用方法は [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) を参照してください.**
 
-## このテンプレートについて
-
-VS CodeとDev Containerを使用したLaTeX論文執筆環境です. 基本的な論文執筆から, 差分表示やDVC画像管理まで段階的に機能を利用できます.
-
 ## 主な特徴
 
-* **論文執筆環境**: LuaLaTeX + 日本語フォント対応
+* **論文執筆環境**: TeX Live 2023, LuaLaTeX, upLaTeX, pdfLaTeX等をサポート
+* **差分表示**: `latexdiff`を使用した視覚的な差分表示
+* **DVC画像管理**: 大容量画像ファイルの効率
 * **段階的機能**: 必要に応じて差分表示・DVC管理を追加
-* **簡単操作**: Makefileによる統一インターフェース
-* **モジュラー設計**: 保守性の高いスクリプト構成
 
 ## 段階的な使い方ガイド
 
@@ -186,7 +185,6 @@ QUICK_START.md              # クイックスタートガイド
 * **基本機能**: LaTeX文書ビルド, 自動ビルド
 * **差分表示**: latexdiffを使用した視覚的差分表示
 * **画像管理**: DVCによる大容量画像ファイル管理（オプション）
-* **日本語対応**: LuaLaTeX + BIZ UDフォント
 
 ## 詳細情報とガイド
 
@@ -194,7 +192,7 @@ QUICK_START.md              # クイックスタートガイド
 
 段階的な機能利用については以下を参照:
 
-* **基本執筆**: このREADMEの「段階的な使い方ガイド Step 1」
+* **基本執筆**: このREADMEの「段階的な使い方ガイド Step 1」，あるいは [`QUICK_START.md`](QUICK_START.md)
 * **差分表示**: [`docs/workflow.md`](docs/workflow.md) や [`docs/README_DiffTool.md`](docs/README_DiffTool.md)
 * **DVC画像管理**: [`docs/DVC_Workflow.md`](docs/DVC_Workflow.md) - DVCを使用するかの判断基準と詳細手順
 * **設定カスタマイズ**: [`docs/Configuration_Examples.md`](docs/Configuration_Examples.md)
