@@ -3,6 +3,7 @@
 main.pdf
 .vscode/
 *.pdf
+diff_output/*
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

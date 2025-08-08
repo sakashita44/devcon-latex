@@ -1,32 +1,17 @@
-# GitHub Actions Workflow for Calculating Diff
-
-未実装: latexdiffの自動化を行いたい (なお，単一ファイル内でしかdiffがとれない??ため，pandocを使用して単一texファイルに変換してからdiffをとる必要がある)
+# 論文執筆ワークフロー
 
 ## 目的
 
-論文執筆 -> レビュー -> 修正のサイクルを回す
+論文執筆 -> レビュー -> 修正のサイクルを効率的に回す
 
 ## 概要
 
-レビューごとにタグを作成し、前回のタグとの差分を確認する.
-これにより、修正箇所を明確にし、レビューの効率化を図る.
-タグ間の差分は、GitHub Actionsにより自動的に出力される.
+このワークフローでは、レビューごとにGitタグを作成し、前回のタグとの差分を自動計算することで修正箇所を明確化します。
+これにより、レビューアーが変更点を把握しやすくなり、レビューの効率化を図ります。
 
-出力の確認方法 (ローカル)
+## 基本ワークフロー
 
-```sh
-git diff <前回のタグ> <今回のタグ>
-```
-
-出力の確認方法 (GitHub Actions)
-
-1. Actionsタブを開く
-1. Calculate Diffワークフローを選択
-1. diff-logを選択し、ダウンロード
-
-## フロー
-
-### 初期設定
+### 1. 初期設定
 
 リポジトリをクローンし、作業ディレクトリに移動
 
@@ -35,25 +20,28 @@ git clone <リポジトリURL>
 cd <リポジトリ名>
 ```
 
-### 初回のタグ作成
+### 2. 初回バージョンの作成
 
-初回のレビュー用にタグを作成
+論文の初稿を完成させ、レビュー用タグを作成
 
 ```sh
+git add .
+git commit -m "feat: 初稿完成"
 git tag -a v1.0 -m "Initial version for review"
 git push origin v1.0
 ```
 
-### 執筆とコミット
+### 3. 執筆とコミット
 
-論文の執筆を進め適宜コミット
+論文の執筆を進め、適宜コミット
 
 ```sh
 git add .
-git commit -m "Added introduction section"
+git commit -m "feat: 序論セクションを追加"
+git commit -m "fix: 図表の配置を修正"
 ```
 
-### レビュー前のタグ作成
+### 4. レビュー前のバージョン作成
 
 次のレビュー用に新しいタグを作成
 
@@ -62,54 +50,75 @@ git tag -a v2.0 -m "Second version for review"
 git push origin v2.0
 ```
 
-### 差分の確認
+### 5. 差分の確認
 
-前回のタグと今回のタグの間の差分を確認 (GitHub Actionsにて自動化)
+差分計算ツールを使用して変更点を確認
+
+```sh
+# 自動差分計算
+make diff
+
+# または直接実行
+./scripts/calculate_diff.sh
+```
+
+### 6. レビューと修正
+
+1. 生成されたPDF差分をレビューアーに提供
+2. フィードバックに基づいて修正
+3. 修正をコミット
+4. 必要に応じて新しいタグを作成して差分を再計算
+
+## コミットメッセージ規則
+
+効率的な履歴管理のため、以下の接頭辞を使用:
+
+- `feat:` 新機能・新セクション
+- `fix:` バグ修正・誤字修正
+- `refactor:` 構成変更・リファクタリング
+- `docs:` ドキュメント変更
+- `style:` 書式・スタイル変更
+
+## タグ命名規則
+
+- `v1.0`, `v2.0`: メジャーレビュー版
+- `v1.1`, `v1.2`: マイナー修正版
+
+## 差分確認方法
+
+### テキスト差分（Git）
 
 ```sh
 git diff v1.0 v2.0
 ```
 
-### レビューと修正
+### 視覚的差分（PDF）
 
-レビューを受けて修正を行い, 適宜コミット.
-再度修正版ができたら, tagを作成し, 差分を確認する.
+差分計算ツールにより自動生成される`diff_output/diff.pdf`を確認:
 
-## GitHub Actions Workflow
+- 赤文字・取り消し線: 削除された内容
+- 青文字・下線: 追加された内容
 
-以下は、タグ間の差分を自動的に出力するGitHub Actionsのワークフローです。
+## ファイル管理
 
-```yaml
-name: Calculate Diff
+### 差分出力ファイル
 
-on:
-    push:
-        tags:
-            - 'v*'
+- `diff_output/git_diff.txt`: Git差分（テキスト形式）
+- `diff_output/diff.tex`: LaTeX差分ファイル
+- `diff_output/diff.pdf`: 視覚的差分PDF
 
-jobs:
-    diff:
-        runs-on: ubuntu-latest
+### バックアップとアーカイブ
 
-        steps:
-        - name: Checkout code
-          uses: actions/checkout@v2
+重要なバージョンは以下のようにアーカイブ:
 
-        - name: Fetch all tags
-          run: git fetch --tags
+```sh
+# 特定バージョンのアーカイブ作成
+git archive --format=zip --output=paper_v2.0.zip v2.0
 
-        - name: Calculate diff
-          run: |
-            TAGS=$(git tag --sort=-creatordate | head -n 2)
-            TAG_ARRAY=($TAGS)
-            if [ ${#TAG_ARRAY[@]} -eq 2 ]; then
-                git diff ${TAG_ARRAY[1]} ${TAG_ARRAY[0]} > diff.log
-            else
-                echo "Not enough tags to calculate diff" > diff.log
-
-        - name: Upload diff log
-          uses: actions/upload-artifact@v2
-          with:
-              name: diff-log
-              path: diff.log
+# 差分PDFのアーカイブ
+cp diff_output/diff.pdf archive/diff_v1.0_to_v2.0.pdf
 ```
+
+## ツール詳細
+
+差分計算ツールの詳細な使用方法については [`README_DiffTool.md`](README_DiffTool.md) を参照してください。
