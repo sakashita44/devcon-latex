@@ -144,6 +144,7 @@ sample.tex          # articleサンプル文書
 chapters/test.tex   # テストチャプター
 figures/test/       # テスト画像フォルダ
 README.md           # このファイル (独自内容に置き換え)
+LICENSE             # 自身の論文に対応したライセンスに差し替えor削除
 ```
 
 ### 保持すべきファイル
