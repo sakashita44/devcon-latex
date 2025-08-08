@@ -67,7 +67,7 @@
         "latex-workshop.formatting.latexindent.args": [
           "%TMPFILE%",
           "-c=%DIR%/",
-          "-y=defaultIndent: '    '"
+          "-l=%WORKSPACE_FOLDER%/.latexindent.yaml"
         ],
         "latex-workshop.bibtex-fields.sort.enabled": true,
         "latex-workshop.bibtex-format.sort.enabled": true,
@@ -152,12 +152,18 @@
         "latex-workshop.latex.recipe.default": "LuaLaTeX Temporary: lualatex",
         // 言語別エディタ設定
         "[tex]": {
+          "editor.formatOnSave": true,
+          "editor.formatOnPaste": true,
+          "editor.defaultFormatter": "James-Yu.latex-workshop",
           "editor.unicodeHighlight.allowedCharacters": {
             "，": true,
             "．": true
           }
         },
         "[latex]": {
+          "editor.formatOnSave": true,
+          "editor.formatOnPaste": true,
+          "editor.defaultFormatter": "James-Yu.latex-workshop",
           "editor.unicodeHighlight.allowedCharacters": {
             "，": true,
             "．": true

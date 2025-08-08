@@ -1,0 +1,117 @@
+# latexindent設定ファイル
+# 詳細: https://latexindentpl.readthedocs.io/
+
+# インデント設定
+defaultIndent: "    " # 4スペース
+
+# 環境のインデント設定
+indentRules:
+  document: "0"
+  enumerate: "1"
+  itemize: "1"
+  description: "1"
+  center: "1"
+  flushleft: "1"
+  flushright: "1"
+  quote: "1"
+  quotation: "1"
+  verse: "1"
+  verbatim: "0"
+  equation: "1"
+  align: "1"
+  gather: "1"
+  multline: "1"
+  split: "1"
+  cases: "1"
+  figure: "1"
+  table: "1"
+  tabular: "1"
+  minipage: "1"
+
+# コマンドのインデント設定
+commandCodeBlocks:
+  begin: "1"
+  end: "0"
+  item: "0"
+  title: "0"
+  author: "0"
+  date: "0"
+  section: "0"
+  subsection: "0"
+  subsubsection: "0"
+  paragraph: "0"
+  subparagraph: "0"
+  chapter: "0"
+  part: "0"
+
+# 改行の調整
+modifyLineBreaks:
+  preserveBlankLines: 1
+  condenseMultipleBlankLinesInto: 1
+  oneSentencePerLine:
+    manipulateSentences: 0
+  environments:
+    BeginStartsOnOwnLine: 1
+    BodyStartsOnOwnLine: 1
+    EndStartsOnOwnLine: 1
+    EndFinishesWithLineBreak: 1
+  commands:
+    CommandStartsOnOwnLine: 0
+    CommandNameFinishesWithLineBreak: 0
+
+# 特殊文字のハンドリング
+specialBeginEnd:
+  displayMath:
+    begin: '\\\['
+    end: '\\\]'
+    lookForThis: 1
+  inlineMath:
+    begin: '\\\('
+    end: '\\\)'
+    lookForThis: 1
+
+# 日本語対応設定
+lookForAlignDelims:
+  align: 1
+  alignat: 1
+  array: 1
+  bmatrix: 1
+  cases: 1
+  matrix: 1
+  pmatrix: 1
+  tabular: 1
+  vmatrix: 1
+  Bmatrix: 1
+  Vmatrix: 1
+  longtable: 1
+  supertabular: 1
+  xtabular: 1
+  gather: 1
+  split: 1
+  multline: 1
+
+# 表・数式の詳細な揃え設定
+alignDelims:
+  delims: 1
+  alignDoubleBackSlash: 1
+  spacesBeforeDoubleBackSlash: 1
+  multiColumnGrouping: 0
+  alignRowsWithoutMaxDelims: 1
+  spacesBeforeAmpersand: 1
+  spacesAfterAmpersand: 1
+  justification: left
+
+# 日本語テキスト処理
+noAdditionalIndent:
+  \textbf: 0
+  \textit: 0
+  \emph: 0
+  \underline: 0
+
+# 日本語文書特有の環境
+environments:
+  jfigure: 1
+  jtable: 1
+  jequation: 1# バックアップ設定
+cycleThroughBackUps: 0
+backupExtension: .bak0

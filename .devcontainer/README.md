@@ -56,6 +56,20 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
         * 任意のレシピを選択してビルド
 3. **PDFプレビュー**: VS Code内のタブで表示
 
+### コードフォーマット
+
+* **自動フォーマット**: ファイル保存時・ペースト時に自動実行
+* **手動フォーマット**: `Shift+Alt+F` / `Shift+Option+F`
+* **設定ファイル**: `.latexindent.yaml`（カスタマイズ可能）
+* **インデント**: 4スペース（環境・コマンドに応じて自動調整）
+
+#### 表・数式の自動揃え機能
+
+* **表の列揃え**: `tabular`、`longtable`等の`&`で列を自動整列
+* **数式揃え**: `align`、`alignat`、`cases`等の`&`で揃え位置を自動調整
+* **行列揃え**: `pmatrix`、`bmatrix`等の要素を自動整列
+* **改行揃え**: `\\`の位置を統一して可読性向上
+
 ### 使用エンジンとスタイル
 
 * **対応エンジン**: LuaLaTeX, upLaTeX, pdfLaTeX, XeLaTeX等
@@ -193,6 +207,8 @@ pandoc main.tex -o output.docx
 ### VS Code拡張機能
 
 * **LaTeX Workshop**: コンパイル・プレビュー（全エンジン対応）
+    * 自動フォーマット: `latexindent`（保存時・ペースト時）
+    * 設定ファイル: `.latexindent.yaml`
 * **LTeX**: 文法・スペルチェック（日本語対応）
 * **Pandoc**: 文書変換サポート
 * **GitHub Copilot**: 文章改善支援
