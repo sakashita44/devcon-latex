@@ -1,0 +1,87 @@
+\documentclass[12pt]{article}
+
+% LuaLaTeX用の日本語設定
+\usepackage{luatexja}
+\usepackage{luatexja-fontspec}
+
+% その他のパッケージ
+\usepackage[margin=2cm]{geometry}
+\usepackage{amsmath}
+\usepackage{graphicx}
+
+\usepackage{RSL_style} % 独自のスタイルファイルを読み込み
+
+\title{明朝体とゴシック体のサンプル文書}
+\author{研究者}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{はじめに}
+
+この文書は明朝体とゴシック体を使い分けたLaTeX文書のサンプルです。
+
+\section{フォントの特徴}
+
+明朝体の特徴:
+\begin{itemize}
+    \item 本文に適している
+    \item 長文でも読みやすい
+    \item 伝統的で落ち着いた印象
+\end{itemize}
+
+{\sffamily
+この部分はゴシック体で表示されます。ゴシック体の特徴:
+\begin{itemize}
+    \item 見出しに適している
+    \item 強調したい部分に使用
+    \item 視認性が高い
+\end{itemize}
+}
+
+通常の明朝体に戻ります。
+
+\section{数式の例}
+
+数式もきれいに表示されます:
+
+\begin{equation}
+    E = mc^2
+\end{equation}
+
+\begin{align}
+    \sin^2\theta + \cos^2\theta &= 1 \\
+    \frac{d}{dx}\sin x &= \cos x
+\end{align}
+
+\section{表の例}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{|c|c|c|}
+\hline
+項目 & 値 & 備考 \\
+\hline
+温度 & 25°C & 室温 \\
+湿度 & 60\% & 標準 \\
+圧力 & \SI{101.3}{kPa} & 標準大気圧 \\
+\hline
+\end{tabular}
+\caption{実験条件}
+\end{table}
+
+\section{フォント使い分けの例}
+
+通常の明朝体: あいうえおABCabc
+
+{\sffamily ゴシック体: あいうえおABCabc} % 日本語部分はゴシック体にならない
+
+{\sffamily\bfseries ゴシック体太字: あいうえおABCabc} % 日本語部分もゴシック体太字になる
+
+\section{まとめ}
+
+明朝体を基本として、必要に応じてゴシック体を使い分けることで、読みやすい文書を作成できます。
+
+\end{document}

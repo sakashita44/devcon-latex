@@ -1,0 +1,45 @@
+\documentclass[11pt,fleqn,report]{ltjsbook}
+
+% 独自のスタイルファイルを読み込み
+\usepackage{RSL_style}
+
+% ヘッダー高さを適切に設定
+\setlength{\headheight}{18pt}
+
+% book用の設定調整
+% chapterベースの番号設定に変更（styleで定義されたsectionベースを上書き）
+\numberwithin{equation}{chapter} % 数式番号を章ごとにリセット
+\numberwithin{figure}{chapter} % 図番号を章ごとにリセット
+\numberwithin{table}{chapter} % 表番号を章ごとにリセット
+
+% book用の数式番号スタイル設定
+\renewcommand{\theequation}{\thechapter.\arabic{equation}}
+\renewcommand{\thefigure}{\thechapter.\arabic{figure}} % 図番号のスタイル設定
+\renewcommand{\thetable}{\thechapter.\arabic{table}} % 表番号のスタイル設定
+
+% book用のマーク設定
+\renewcommand{\chaptermark}[1]{\markboth{第\thechapter 章~#1}{}}
+\renewcommand{\sectionmark}[1]{\markright{\thesection~#1}}
+
+% 設定ここまで
+
+\begin{document}
+
+\frontmatter % タイトルと目次
+\pagestyle{empty}
+
+\include{chapters/title}
+
+\tableofcontents
+
+\mainmatter{} % 本文
+\pagestyle{fancy}
+
+\include{chapters/test} % テスト用の章
+
+\include{chapters/chapter1}
+
+\bibliographystyle{unsrt} % 参考文献スタイル
+\bibliography{bibliography/reference} % 参考文献リストの表示
+
+\end{document}
