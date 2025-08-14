@@ -15,7 +15,7 @@
     },
     "ghcr.io/devcontainers/features/git:1": {}
   },
-  "postCreateCommand": "chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
+  "postCreateCommand": "sudo chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
   "customizations": {
     "vscode": {
       "settings": {
