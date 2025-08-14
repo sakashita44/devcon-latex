@@ -26,6 +26,7 @@
 - [ ] `latex.config.example`をもとに設定ファイルを作成．例: `cp latex.config.example latex.config`
     - DVC機能を使わない場合は`latex.config`内の`DVC_REMOTE_URL`を空白のまま保持
 - [ ] 不要なファイルを削除 (詳細は [テンプレート使用時の整理](#テンプレート使用時の整理) を参照)
+- [ ] git configのsafe.directoryを設定: `git config --global --add safe.directory /workspaces`
 
 #### Step 3: 論文執筆開始
 
