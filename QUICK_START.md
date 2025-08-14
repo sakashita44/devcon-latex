@@ -10,7 +10,6 @@
 
 - [ ] VS Codeをインストール済み
 - [ ] VS Codeの拡張機能「Dev Containers」をインストール済み
-- [ ] VS Codeの拡張機能「LaTeX Workshop」をインストール済み
 - [ ] Dockerをインストール済み（Docker Desktopなど）
 
 ### ✅ 論文執筆開始チェックリスト
@@ -20,17 +19,40 @@
 - [ ] このリポジトリをクローンまたはテンプレートとして使用
 - [ ] VS Codeで開く
 - [ ] 右下に表示される「Reopen in Container」をクリック
-- [ ] コンテナ起動完了まで待機（初回は10-15分）
+- [ ] コンテナ起動完了まで待機
 
 #### Step 2: 基本設定（初回のみ）
 
-- [ ] 設定ファイルを作成: `cp latex.config.example latex.config`
-- [ ] DVC機能を使わない場合は`latex.config`内の`DVC_REMOTE_URL`を空白のまま保持
+- [ ] `latex.config.example`をもとに設定ファイルを作成．例: `cp latex.config.example latex.config`
+    - DVC機能を使わない場合は`latex.config`内の`DVC_REMOTE_URL`を空白のまま保持
+- [ ] 不要なファイルを削除: 以下は残すべきファイル
+
+    ```text
+    main.tex                    # メイン文書 (RSL卒論用): 用途によっては削除対象
+    RSL_style.sty               # スタイルファイル (RSL卒論用): 用途によっては削除対象
+    chapters/title.tex          # タイトルページ: 用途によっては削除対象
+    chapters/chapter1.tex       # 章テンプレート: 用途によっては削除対象
+    bibliography/reference.bib  # 参考文献
+    .devcontainer/              # 開発環境設定
+    .latexmkrc                  # LaTeXビルド設定
+    .latexindent.yaml           # LaTeX自動整形設定
+    Makefile                    # ビルド・差分管理コマンド
+    scripts/                    # 支援スクリプト
+    docs/                       # ワークフロー・ツール説明
+    .github/                    # GitHub設定
+    .gitignore                  # Git除外設定
+    .gitattributes              # Git属性設定
+    .dvcignore                  # DVC除外設定（DVC使用時）
+    .dvc-exclude                # DVC除外設定（DVC使用時）
+    latex.config                # LaTeX設定ファイル
+    latex.config.example        # LaTeX設定ファイルテンプレート
+    QUICK_START.md              # クイックスタートガイド
+    ```
 
 #### Step 3: 論文執筆開始
 
 - [ ] `main.tex`を開いて執筆開始
-- [ ] 異なるテンプレートを使用する場合は, `latex.config`内の`MAIN_TEX`等を確認
+    - 異なるテンプレートを使用する場合は, `latex.config`内の`MAIN_TEX`等を確認
 - [ ] ファイル保存で自動ビルドが実行されることを確認
 - [ ] 生成されたPDFが`main.pdf`として出力されることを確認
 - [ ] `chapters/chapter1.tex`を編集して論文を書き始める
@@ -94,7 +116,7 @@
 
 ※ここで示しているエンジンはあくまで参考です．実際に使用する際には各テンプレートのドキュメント等を確認してください．
 
-#### ✅ 学会テンプレート（IEEE, ACM, Springerなど）使用時
+#### ✅ 英語系テンプレート（IEEE, ACM, Springerなど）使用時
 
 - [ ] `latex.config`の`MAIN_TEX`を該当するメインファイル名に変更
 - [ ] `latex.config`の`LATEX_ENGINE`を確認:
@@ -104,7 +126,7 @@
 - [ ] `RSL_style.sty`を使用しない場合は`main.tex`から該当行を削除
 - [ ] テンプレート付属のスタイルファイル（`.sty`, `.cls`）をプロジェクトルートに配置
 
-#### ✅ 日本語学会テンプレート使用時
+#### ✅ 日本語系テンプレート使用時
 
 - [ ] `latex.config`の`LATEX_ENGINE`を確認:
     - [ ] 情報処理学会: `uplatex`に変更
