@@ -6,14 +6,14 @@
 
 ## 概要
 
-このワークフローでは、レビューごとにGitタグを作成し、前回のタグとの差分を自動計算することで修正箇所を明確化します。
-これにより、レビューアーが変更点を把握しやすくなり、レビューの効率化を図ります。
+このワークフローでは，レビューごとにGitタグを作成し，前回のタグとの差分を自動計算することで修正箇所を明確化します．
+これにより，レビューアーが変更点を把握しやすくなり，レビューの効率化を図ります．
 
 ## 基本ワークフロー
 
 ### 1. 初期設定
 
-リポジトリをクローンし、作業ディレクトリに移動
+リポジトリをクローンし，作業ディレクトリに移動
 
 ```bash
 git clone <リポジトリURL>
@@ -28,7 +28,7 @@ make validate
 
 ### 2. 初回バージョンの作成
 
-論文の初稿を完成させ、レビュー用タグを作成
+論文の初稿を完成させ，レビュー用タグを作成
 
 ```bash
 # LaTeX文書をビルド
@@ -37,13 +37,13 @@ make build
 # 初回レビュー用タグを作成
 git add .
 git commit -m "feat: 初稿完成"
-git tag -a v1.0 -m "Initial version for review"
-git push origin v1.0
+git tag -a v1.0.0 -m "Initial version for review"
+git push origin v1.0.0
 ```
 
 ### 3. 執筆とコミット
 
-論文の執筆を進め、適宜ビルドとコミット
+論文の執筆を進め，適宜ビルドとコミット
 
 ```bash
 # 文書の編集（main.tex, chapters/*.tex など）
@@ -72,8 +72,8 @@ make build
 make validate
 
 # レビュー用タグ作成
-git tag -a v2.0 -m "Second version for review"
-git push origin v2.0
+git tag -a v2.0.0 -m "Second version for review"
+git push origin v2.0.0
 ```
 
 ### 5. 差分の確認
@@ -85,7 +85,7 @@ git push origin v2.0
 make diff
 
 # 特定バージョン間の差分
-make diff-pdf BASE=v1.0 CHANGED=v2.0
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0
 ```
 
 ### 6. レビューと修正
@@ -97,32 +97,34 @@ make diff-pdf BASE=v1.0 CHANGED=v2.0
 
 ## コミットメッセージ規則
 
-効率的な履歴管理のため、以下の接頭辞を使用:
+効率的な履歴管理のため，以下の接頭辞を使用:
 
-- `feat:` 新機能・新セクション
-- `fix:` バグ修正・誤字修正
-- `refactor:` 構成変更・リファクタリング
-- `docs:` ドキュメント変更
-- `style:` 書式・スタイル変更
+- `feat:` 新機能・新セクション (マイナーバージョンアップ)
+- `fix:` バグ修正・誤字修正 (パッチバージョンアップ)
+- `refactor:` コードのリファクタリング (バージョンアップなし)
+- `docs:` ドキュメント変更 (バージョンアップなし)
+- `style:` 書式・スタイル変更 (バージョンアップなし)
+- `BREAKING CHANGE:` 章構造などの破壊的変更 (メジャーバージョンアップ)
 
 ## タグ命名規則
 
-- `v1.0`, `v2.0`: メジャーレビュー版
-- `v1.1`, `v1.2`: マイナー修正版
+- `v1.0.0`, `v2.0.0`: メジャーレビュー版 (章構成の大幅変更等)
+- `v1.1.0`, `v1.2.0`: マイナー修正版 (文章の追加・削除など)
+- `v1.0.1`, `v1.0.2`: パッチ修正 (誤字修正など)
 
 ## 差分確認方法
 
 ### テキスト差分（Git）
 
 ```bash
-git diff v1.0 v2.0
+git diff v1.0.0 v2.0.0
 ```
 
 ### 視覚的差分（PDF）
 
 ```bash
 # 差分PDF生成
-make diff-pdf BASE=v1.0 CHANGED=v2.0
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0
 ```
 
 差分計算ツールにより自動生成される`diff_output/diff.pdf`を確認:
@@ -144,10 +146,10 @@ make diff-pdf BASE=v1.0 CHANGED=v2.0
 
 ```bash
 # 特定バージョンのアーカイブ作成
-git archive --format=zip --output=paper_v2.0.zip v2.0
+git archive --format=zip --output=paper_v2.0.0.zip v2.0.0
 
 # 差分PDFのアーカイブ
-cp diff_output/diff.pdf archive/diff_v1.0_to_v2.0.pdf
+cp diff_output/diff.pdf archive/diff_v1.0.0_to_v2.0.0.pdf
 ```
 
 ## 利用可能なコマンド一覧
@@ -168,7 +170,7 @@ cp diff_output/diff.pdf archive/diff_v1.0_to_v2.0.pdf
 
 - `make help` - 利用可能なコマンド一覧表示
 
-詳細な設定方法は [`Configuration_Examples.md`](Configuration_Examples.md) を参照してください。
+詳細な設定方法は [`Configuration_Examples.md`](Configuration_Examples.md) を参照してください．
 
 ## 関連ドキュメント
 

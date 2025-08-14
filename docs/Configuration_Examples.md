@@ -2,10 +2,10 @@
 
 ## このドキュメントについて
 
-このドキュメントは、LaTeX論文執筆環境の様々な使用場面に応じた設定例を提供します。以下のワークフローと併せて利用してください:
+このドキュメントは，`latex.config`ファイルの設定例を提供します．以下のワークフローと併せて利用してください:
 
 * **基本的な論文執筆**: [`workflow.md`](workflow.md) - 基本ワークフローを先に確認
-* **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - 大容量画像がある場合の設定例
+* **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - DVCで画像などを管理する場合の設定例
 * **差分ツール**: [`README_DiffTool.md`](README_DiffTool.md) - 差分生成の詳細設定
 
 ## 使い方の流れ
@@ -69,22 +69,22 @@ LATEX_ENGINE=lualatex
 BIBTEX_ENGINE=biber
 ```
 
-### 公開リポジトリ対応
+### 画像管理方法の選択
 
-**適用場面**: [`DVC_Workflow.md`](DVC_Workflow.md)の公開リポジトリワークフロー
+**適用場面**: [`DVC_Workflow.md`](DVC_Workflow.md)の画像管理最適化ワークフロー
 
 ```bash
 # latex.config
 MAIN_TEX=paper.tex
 DVC_MANAGED_DIRS=figures
 IMAGE_EXTENSIONS=png jpg pdf eps
-DVC_REMOTE_NAME=private-storage
-DVC_REMOTE_URL=ssh://user@private-server/paper-images
+DVC_REMOTE_NAME=storage
+DVC_REMOTE_URL=ssh://user@server/paper-images
 
-# .dvc-exclude に追加するファイル例
-# figures/logo.png          # 研究室ロゴ（公開OK）
-# figures/template.jpg      # テンプレート画像（公開OK）
-# figures/diagram-base.pdf  # 基本図表（公開OK）
+# .dvc-exclude に追加するファイル例（Git管理に変更）
+# figures/logo.png          # 10KB, 年1回変更
+# figures/template.jpg      # 50KB, 初回作成後変更なし
+# figures/diagram-base.pdf  # 100KB, 完成済み静的図表
 ```
 
 ## ワークフロー例
@@ -140,20 +140,21 @@ make dvc-pull
 make validate
 ```
 
-### 論文投稿・公開時
+### 論文投稿・画像管理最適化時
 
 ```bash
-# 1. 公開用画像の除外設定
-make dvc-exclude-image FILE=figures/confidential-data.png
+# 1. 小容量かつ変更頻度低の画像をGit管理に変更
+make dvc-exclude-image FILE=figures/small-logo.png
 
-# 2. テンプレート画像をGit管理に戻す
-make dvc-restore-file FILE=figures/university-logo.png
+# 2. 静的テンプレート画像をGit管理に変更
+make dvc-restore-file FILE=figures/template.png
 
-# 3. 最終確認
+# 3. 管理状況確認
 make show-image-status
 
-# 4. 公開リポジトリ作成
-# Git管理ファイルのみ含まれる
+# 4. 最適化された管理状態で運用
+# Git管理: 小容量 + 変更頻度低
+# DVC管理: 大容量 or 変更頻度高 or 全体量大
 ```
 
 ## ストレージ設定例
@@ -211,7 +212,7 @@ DVC_REMOTE_URL=Z:/shared/latex-projects
 ```bash
 # 推奨命名規則
 figures/
-├── 01-introduction/
+├── 01-introduction/          # 使用先のtexファイル名をディレクトリ名に
 │   ├── overview.png          # 概要図
 │   └── research-flow.pdf     # 研究フロー
 ├── 02-method/
@@ -222,17 +223,19 @@ figures/
     └── template.pdf          # テンプレート（公開OK）
 ```
 
-### 3. 除外設定の運用
+### 3. 画像管理の最適化
 
 ```bash
-# チーム共通の除外設定
-# 以下を .dvc-exclude に追加
-figures/shared/logo.png
-figures/shared/template.pdf
-figures/shared/university-logo.png
+# チーム共通の管理方針設定
+# 以下を .dvc-exclude に追加（Git管理に変更）
+figures/shared/logo.png          # 10KB, 年1回変更
+figures/shared/template.pdf      # 50KB, 静的テンプレート
+figures/shared/icon.png          # 5KB, 変更なし
 
-# 個人データは個別に除外
-make dvc-exclude-image FILE=figures/personal/draft.png
+# 以下はDVC管理を継続（デフォルト）
+# - 変更頻度高: 実験結果ファイル
+# - 大容量: 高解像度画像
+# - 量が多: 大量の図表ファイル
 ```
 
 ### 4. データバックアップ
@@ -323,17 +326,79 @@ dvc checkout figures/missing-image.png
 * AWS認証情報は環境変数で設定
 * パスワードをコミットしない
 
-### 2. 機密データ保護
+### 2. 管理方針に基づくファイル分類
 
-* 機密画像は除外設定を確実に
-* 公開前に `show-image-status` で確認
-* プライベートリモートストレージ使用
+* **Git管理対象**: 小容量ファイル（1MB未満），変更頻度の低いファイル
+* **DVC管理対象**: 大容量ファイル（1MB以上），頻繁に変更されるファイル
+* **パフォーマンス最適化**: ファイルサイズと変更頻度による適切な管理方法選択
 
 ### 3. アクセス制御
 
 * チームメンバーのみアクセス可能な設定
 * 定期的なアクセス権限見直し
 * ログ監視の実装
+
+## 画像管理方法の判断基準
+
+### Git管理を選択する場合
+
+以下の **すべて** に該当するファイル:
+
+* ファイルサイズが小さい (1MB未満)
+* 変更頻度が低い (月1回未満)
+* チーム全体で頻繁にアクセス
+
+### DVC管理を選択する場合
+
+以下の **いずれか** に該当する場合:
+
+* 変更頻度が高い
+* ファイルサイズが大きい (1MB以上)
+* 画像ファイル全体の容量が大きい (100MB以上)
+
+### 実用例
+
+```bash
+# Git管理の例
+figures/logo.png          # 10KB, 年1回変更
+figures/university.png    # 50KB, 変更なし
+figures/template.pdf      # 100KB, 初回作成後変更なし
+
+# DVC管理の例 (デフォルト)
+figures/experiment-*.png  # 500KB, 実験のたびに更新
+figures/hires-photo.jpg   # 5MB, 高解像度写真
+figures/simulation/*.png  # 各100KB x 200ファイル = 20MB
+```
+
+### ファイルサイズによる分類
+
+```bash
+# 1MB未満かつ変更頻度低 → Git管理
+make dvc-exclude-image FILE=figures/small-logo.png
+
+# 1MB以上 or 変更頻度高 → DVC管理推奨（デフォルト）
+# 自動的にDVC管理される
+```
+
+### 変更頻度による分類
+
+```bash
+# 小サイズかつ変更頻度低 → Git管理
+make dvc-exclude-image FILE=figures/static-diagram.png
+
+# 変更頻度高 or 大容量 → DVC管理
+# 実験結果や大容量ファイルはDVC管理を継続
+```
+
+### チーム共有の考慮
+
+```bash
+# 小サイズかつアクセス頻度高かつ変更頻度低 → Git管理
+make dvc-exclude-image FILE=figures/team-logo.png
+
+# 専門的な図表やデータ → DVC管理
+# 大容量または頻繁変更ファイルはDVC管理
+```
 
 ## パフォーマンス最適化
 
@@ -370,11 +435,11 @@ dvc gc --workspace --cloud
 
 ## 関連ドキュメント
 
-設定完了後は、以下のワークフローを参照して実際の作業を開始してください:
+設定完了後は，以下のワークフローを参照して実際の作業を開始してください:
 
 * **基本的な論文執筆**: [`workflow.md`](workflow.md) - 標準的なワークフロー
 * **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - 大容量画像を含む場合のワークフロー
 * **差分ツール**: [`README_DiffTool.md`](README_DiffTool.md) - 差分生成機能の詳細
 * **スクリプト仕様**: [`../scripts/README.md`](../scripts/README.md) - 技術的な詳細仕様
 
-問題が発生した場合は、各ワークフローのトラブルシューティングセクションを参照してください。
+問題が発生した場合は，各ワークフローのトラブルシューティングセクションを参照してください．

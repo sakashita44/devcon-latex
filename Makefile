@@ -110,8 +110,15 @@ watch:
 
 # Git差分表示
 diff:
-	@echo "現在の変更を表示中..."
-	@git diff HEAD~1..HEAD
+	@if [ -n "$(BASE)" ] && [ -n "$(CHANGED)" ]; then \
+		echo "Git差分表示中: $(BASE) → $(CHANGED)"; \
+		git diff $(BASE)..$(CHANGED); \
+	else \
+		echo "デフォルト差分表示中 (HEAD~1..HEAD)..."; \
+		echo "特定のタグ/コミット間の差分を表示するには:"; \
+		echo "  make diff BASE=v1.0.0 CHANGED=v2.0.0"; \
+		git diff HEAD~1..HEAD; \
+	fi
 
 # 視覚的差分PDF生成
 diff-pdf:

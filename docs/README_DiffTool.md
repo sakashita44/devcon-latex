@@ -1,6 +1,6 @@
 # LaTeX差分計算ツール リファレンス
 
-LaTeX論文のバージョン間差分を自動計算するコンテナ内ツールです。
+LaTeX論文のバージョン間差分を自動計算するコンテナ内ツールです．
 
 ## 重要な設定ファイル
 
@@ -14,7 +14,7 @@ $lualatex = 'lualatex -interaction=nonstopmode %O %S';
 $bibtex_use = 2;  # BibTeX有効
 ```
 
-**エンジンを変更した場合（upLaTeX, pdfLaTeX等）は、差分PDF生成が正常に動作するよう `.latexmkrc` を適切に調整してください。**
+**エンジンを変更した場合（upLaTeX, pdfLaTeX等）は，差分PDF生成が正常に動作するよう `.latexmkrc` を適切に調整してください．**
 
 ## 機能概要
 
@@ -45,11 +45,11 @@ ls diff_output/
 ### make コマンド
 
 ```bash
-make help                              # ヘルプ表示
-make diff                              # 従来の差分計算実行
+make help                               # ヘルプ表示
+make diff BASE=v1.0.0 CHANGED=v2.0      # Git差分表示
 make diff-pdf BASE=v1.0.0 CHANGED=v2.0  # 視覚的差分PDF生成
-make test-tag                          # 対話式タグ作成
-make clean                             # 出力ディレクトリクリーンアップ
+make test-tag                           # 対話式タグ作成
+make clean                              # 出力ディレクトリクリーンアップ
 ```
 
 ### 視覚的差分PDF生成の使用例
@@ -206,7 +206,7 @@ project/
 
 ## ワークフロー統合
 
-詳細な論文執筆ワークフローについては [`workflow.md`](workflow.md) を参照してください。
+詳細な論文執筆ワークフローについては [`workflow.md`](workflow.md) を参照してください．
 
 ## 制限事項と既知の問題
 
