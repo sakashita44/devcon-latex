@@ -4,10 +4,10 @@ set -e
 echo "=== DevContainer セットアップ開始 ==="
 
 # システムパッケージの更新とインストール
-echo "1/5: システムパッケージを更新中..."
+echo "1/6: システムパッケージを更新中..."
 sudo apt-get update
 
-echo "2/5: 必要パッケージをインストール中..."
+echo "2/6: 必要パッケージをインストール中..."
 sudo apt-get install -y \
     pandoc \
     fonts-noto-cjk \
@@ -20,11 +20,11 @@ sudo apt-get install -y \
     pipx
 
 # pipxでDVCインストール（SSH対応）
-echo "3/5: pipxでDVCをインストール中（SSH対応）..."
+echo "3/6: pipxでDVCをインストール中（SSH対応）..."
 pipx install "dvc[ssh]"
 
 # 日本語ロケール設定
-echo "4/5: 日本語ロケールを設定中..."
+echo "4/6: 日本語ロケールを設定中..."
 sudo sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen
 sudo locale-gen
 sudo update-locale LANG=ja_JP.UTF-8
@@ -49,9 +49,17 @@ else
 fi
 
 # クリーンアップ
-echo "5/5: クリーンアップ中..."
+echo "5/6: クリーンアップ中..."
 sudo apt-get clean
 sudo rm -rf /var/lib/apt/lists/*
 
+# Git safe directory設定
+echo "6/6: Git safe directory設定中..."
+git config --global --add safe.directory /workspaces
+
 echo "=== DevContainer セットアップ完了 ==="
+echo "作業ディレクトリ: $(pwd)"
+echo "ロケール: $LANG"
+echo "gitグローバル設定一覧:"
+git config --global --list
 echo "DVCバージョン: $(dvc --version)"
