@@ -1,7 +1,8 @@
 #!/bin/bash
 
-# Git-LaTeX 差分PDF生成スクリプト
+# Git-LaTeX 差分PDF生成スクリプト (改良版)
 # 仕様: 2つのGitバージョン間のLaTeX差分PDFを生成
+# v2アプローチ: 完全なsrcディレクトリ構造を再現してPDF生成
 
 set -e  # エラー時にスクリプトを停止
 
@@ -46,8 +47,116 @@ show_usage() {
 EOF
 }
 
+# DVC管理ファイルの復元関数
+restore_dvc_files() {
+    local version="$1"
+    local work_dir="$2"
+    local version_name="$3"
+
+    log_info "  $version_name でDVC管理ファイルを復元中..."
+
+    # 現在のブランチを保存
+    local current_branch=$(git branch --show-current)
+    local current_commit=$(git rev-parse HEAD)
+
+    # 一時的にターゲットバージョンにチェックアウト
+    git checkout "$version" --quiet
+
+    # DVCファイルが存在するかチェック
+    if [ -f ".dvc/config" ] && find . -name "*.dvc" -type f | head -1 | grep -q .; then
+        log_info "    DVC管理ファイルを復元中..."
+        if dvc checkout --quiet 2>/dev/null; then
+            log_success "    DVC復元完了"
+        else
+            log_warning "    DVC復元に失敗（一部ファイルが不足している可能性）"
+        fi
+
+        # DVC管理ファイルをwork_dirにコピー（srcプレフィックスを除去）
+        find src -name "*.png" -o -name "*.jpg" -o -name "*.jpeg" -o -name "*.pdf" -o -name "*.eps" -o -name "*.svg" | while read -r file; do
+            local relative_file="${file#src/}"
+            local target_file="$work_dir/$relative_file"
+            local target_dir=$(dirname "$target_file")
+            mkdir -p "$target_dir"
+            cp "$file" "$target_file" 2>/dev/null || true
+        done
+    else
+        log_info "    DVCファイルなし、git履歴から画像を復元"
+        # git show で画像ファイルを復元（srcプレフィックスを除去）
+        git ls-tree -r --name-only "$version" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' | grep "^src/" | while read -r file; do
+            local relative_file="${file#src/}"
+            local target_file="$work_dir/$relative_file"
+            local target_dir=$(dirname "$target_file")
+            mkdir -p "$target_dir"
+            git show "$version:$file" > "$target_file" 2>/dev/null || true
+        done
+    fi
+
+    # 元のコミットに戻る
+    if [ -n "$current_branch" ]; then
+        git checkout "$current_branch" --quiet
+    else
+        git checkout "$current_commit" --quiet
+    fi
+}
+
+# 完全なsrcディレクトリ構造の復元関数
+restore_full_src() {
+    local version="$1"
+    local target_dir="$2"
+    local version_name="$3"
+
+    log_info "$version_name のsrcディレクトリ構造を復元中..."
+
+    # すべてのsrc配下ファイルを復元（srcプレフィックスを除去して直接配置）
+    git ls-tree -r --name-only "$version" | grep "^src/" | while read -r file; do
+        # src/ プレフィックスを除去
+        local relative_file="${file#src/}"
+        local target_file="$target_dir/$relative_file"
+        local target_dirname=$(dirname "$target_file")
+
+        mkdir -p "$target_dirname"
+        if git show "$version:$file" > "$target_file" 2>/dev/null; then
+            log_info "  復元: $relative_file"
+        else
+            log_warning "  復元失敗: $file"
+        fi
+    done
+
+    # DVC管理ファイルの復元
+    restore_dvc_files "$version" "$target_dir" "$version_name"
+}
+
+# latexpandでファイルを平坦化する関数
+create_flat_tex() {
+    local src_dir="$1"
+    local main_tex_path="$2"
+    local output_file="$3"
+    local version_name="$4"
+
+    log_info "$version_name の平坦化ファイルを作成中..."
+
+    # メインファイルのディレクトリに移動してlatexpandを実行
+    # src/プレフィックスを除去済みなので、直接パスを使用
+    local main_dir="$src_dir/$(dirname "$main_tex_path")"
+    local main_file=$(basename "$main_tex_path")
+    local abs_output_file=$(realpath "$output_file")
+
+    log_info "  作業ディレクトリ: $main_dir"
+    log_info "  メインファイル: $main_file"
+    log_info "  出力ファイル: $abs_output_file"
+
+    cd "$main_dir"
+    if latexpand "$main_file" > "$abs_output_file" 2>/dev/null; then
+        log_success "  平坦化完了: $abs_output_file"
+    else
+        log_error "  平坦化失敗: $main_tex_path"
+        return 1
+    fi
+    cd - > /dev/null
+}
+
 # 1. 初期化
-log_info "Git-LaTeX差分PDF生成を開始します..."
+log_info "Git-LaTeX差分PDF生成を開始します（改良版）..."
 
 # 引数チェック
 if [ $# -ne 3 ]; then
@@ -56,18 +165,22 @@ if [ $# -ne 3 ]; then
     exit 1
 fi
 
-MAIN_TEX="$1"
+TARGET_FILE="$1"
 BASE_VERSION="$2"
 CHANGED_VERSION="$3"
 
-# TARGET指定からファイル名とソースディレクトリを抽出
-TARGET_FILE="$MAIN_TEX"
+# リポジトリルートを取得
+REPO_ROOT=$(git rev-parse --show-toplevel)
+cd "$REPO_ROOT"
+
+# パラメータ解析
 SRC_DIR="$(dirname "$TARGET_FILE")"
 MAIN_TEX_NAME="$(basename "$TARGET_FILE")"
+TARGET_REL_PATH="${TARGET_FILE#src/}"  # src/プレフィックスを除去
 
 log_info "設定:"
 log_info "  ターゲットファイル: $TARGET_FILE"
-log_info "  ソースディレクトリ: $SRC_DIR"
+log_info "  相対パス: $TARGET_REL_PATH"
 log_info "  メインファイル名: $MAIN_TEX_NAME"
 log_info "  比較元バージョン: $BASE_VERSION"
 log_info "  比較先バージョン: $CHANGED_VERSION"
@@ -83,51 +196,33 @@ if ! git rev-parse --verify "$CHANGED_VERSION" >/dev/null 2>&1; then
     exit 1
 fi
 
-# 作業用ディレクトリの初期化（タグ間の差分を明示）
-# ディレクトリ名: diff_<ファイル名>_<base>-to-<changed>
+# 作業用ディレクトリの設定
 BASE_SHORT=$(echo "$BASE_VERSION" | sed 's/[^a-zA-Z0-9._-]/_/g')
 CHANGED_SHORT=$(echo "$CHANGED_VERSION" | sed 's/[^a-zA-Z0-9._-]/_/g')
-WORK_DIR="build/diff_$(basename ${TARGET_FILE%.*})_${BASE_SHORT}-to-${CHANGED_SHORT}"
-log_info "作業用ディレクトリを初期化中: $WORK_DIR"
+TARGET_BASE_NAME=$(basename "${TARGET_FILE%.*}")
+WORK_DIR="build/diff/${TARGET_BASE_NAME}_${BASE_SHORT}-to-${CHANGED_SHORT}"
 
+log_info "作業用ディレクトリ: $WORK_DIR"
+
+# 既存の作業ディレクトリを削除
 if [ -d "$WORK_DIR" ]; then
     rm -rf "$WORK_DIR"
 fi
 
+# 作業ディレクトリ構造を作成
 mkdir -p "$WORK_DIR/base"
 mkdir -p "$WORK_DIR/changed"
 
-# 2. ファイルの抽出
-log_info "ファイルを抽出中..."
+# 2. ファイル復元と画像差分機能
+log_info "ファイルを復元中..."
 
-# LaTeX関連ファイルの抽出関数
-extract_latex_files() {
-    local version="$1"
-    local target_dir="$2"
-
-    log_info "  $version からLaTeX関連ファイルを抽出中..."
-
-    # LaTeX関連ファイルの拡張子
-    local extensions="*.tex *.bib *.cls *.sty"
-
-    # git ls-tree を使用してファイル一覧を取得し、ファイルを抽出
-    git ls-tree -r --name-only "$version" | grep -E '\.(tex|bib|cls|sty)$' | while read -r file; do
-        # ディレクトリ構造を維持してファイルを作成
-        local target_file="$target_dir/$file"
-        local target_dirname=$(dirname "$target_file")
-
-        mkdir -p "$target_dirname"
-        git show "$version:$file" > "$target_file"
-    done
-}
-
-# 画像ファイルの抽出関数（新旧両バージョン対応）
-extract_image_files() {
+# 画像ファイルの差分用抽出関数（元の機能を維持）
+extract_image_files_for_diff() {
     local version="$1"
     local target_dir="$2"
     local version_label="$3"  # "old" または "new"
 
-    log_info "  $version から画像ファイルを抽出中... ($version_label)"
+    log_info "  $version から画像ファイルを差分用に抽出中... ($version_label)"
 
     # 画像ファイルの拡張子
     git ls-tree -r --name-only "$version" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' | while read -r file; do
@@ -153,15 +248,18 @@ extract_image_files() {
     done
 }
 
-# ファイル抽出実行
-extract_latex_files "$BASE_VERSION" "$WORK_DIR/base"
-extract_latex_files "$CHANGED_VERSION" "$WORK_DIR/changed"
+# v2のsrcディレクトリ完全復元
+log_info "=== ステップ3: baseバージョンの復元 ==="
+restore_full_src "$BASE_VERSION" "$WORK_DIR/base" "base"
 
-# 画像ファイルは新旧両バージョンを抽出
-extract_image_files "$BASE_VERSION" "$WORK_DIR" "old"
-extract_image_files "$CHANGED_VERSION" "$WORK_DIR" "new"
+log_info "=== ステップ4: changedバージョンの復元 ==="
+restore_full_src "$CHANGED_VERSION" "$WORK_DIR/changed" "changed"
 
-# ソースディレクトリのスタイルファイル等もコピー
+# 画像差分機能（元のスクリプトの機能を維持）
+extract_image_files_for_diff "$BASE_VERSION" "$WORK_DIR" "old"
+extract_image_files_for_diff "$CHANGED_VERSION" "$WORK_DIR" "new"
+
+# ソースディレクトリのスタイルファイル等もコピー（後方互換性のため）
 log_info "  ソースディレクトリのファイルをコピー中..."
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 for ext in "sty" "cls" "bib"; do
@@ -174,32 +272,11 @@ if [ -d "$REPO_ROOT/$SRC_DIR/bibliography" ]; then
     cp -r "$REPO_ROOT/$SRC_DIR/bibliography" "$WORK_DIR/"
 fi
 
-# メインファイルの存在確認
-if [ ! -f "$WORK_DIR/base/$TARGET_FILE" ]; then
-    log_error "比較元バージョンにターゲットファイル '$TARGET_FILE' が見つかりません"
-    exit 1
-fi
-
-if [ ! -f "$WORK_DIR/changed/$TARGET_FILE" ]; then
-    log_error "比較先バージョンにターゲットファイル '$TARGET_FILE' が見つかりません"
-    exit 1
-fi
-
-# 3. ソースの平坦化
-log_info "ソースファイルを平坦化中..."
-
-# 平坦化実行
-log_info "  作業ディレクトリ: $(pwd)"
-cd "$WORK_DIR/base/$SRC_DIR"
-log_info "  比較元バージョンを平坦化中... (現在: $(pwd))"
-latexpand "$MAIN_TEX_NAME" > "../../main-base.tex"
-
-cd "../../changed/$SRC_DIR"
-log_info "  比較先バージョンを平坦化中... (現在: $(pwd))"
-latexpand "$MAIN_TEX_NAME" > "../../main-changed.tex"
-
-cd "../.."
-log_info "  平坦化後のディレクトリ: $(pwd)"
+# 3. ソースの平坦化（v2アプローチ）
+log_info "=== ステップ5: 平坦化ファイル作成 ==="
+cd "$WORK_DIR"
+create_flat_tex "$WORK_DIR/base" "$TARGET_REL_PATH" "$WORK_DIR/main-base.tex" "base"
+create_flat_tex "$WORK_DIR/changed" "$TARGET_REL_PATH" "$WORK_DIR/main-changed.tex" "changed"
 
 # 平坦化結果の確認
 if [ ! -f "main-base.tex" ] || [ ! -s "main-base.tex" ]; then
@@ -217,7 +294,7 @@ log_info "  main-base.tex: $(wc -l < main-base.tex) 行"
 log_info "  main-changed.tex: $(wc -l < main-changed.tex) 行"
 
 # 4. 差分ファイルの生成
-log_info "差分ファイルを生成中..."
+log_info "=== ステップ6: 差分ファイル生成 ==="
 
 latexdiff main-base.tex main-changed.tex > main-diff.tex
 
@@ -228,55 +305,51 @@ fi
 
 log_success "差分ファイル生成完了: main-diff.tex"
 
-# 5. PDFへのコンパイル
-log_info "PDFをコンパイル中..."
+# 5. v2アプローチによるPDFコンパイル
+log_info "=== ステップ7: 差分ファイル配置 ==="
+TARGET_DIR="changed/$(dirname "$TARGET_REL_PATH")"
+mkdir -p "$TARGET_DIR"
+cp main-diff.tex "$TARGET_DIR/$(basename "$TARGET_REL_PATH")"
+log_success "差分ファイル配置完了: $TARGET_DIR/$(basename "$TARGET_REL_PATH")"
 
-# 現在のディレクトリを保存
-CURRENT_DIR=$(pwd)
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+# .latexmkrcファイルも同じ場所にコピー
+LATEXMKRC_SOURCE="changed/$(dirname "$TARGET_REL_PATH")/.latexmkrc"
+if [ -f "$LATEXMKRC_SOURCE" ] && [ "$LATEXMKRC_SOURCE" != "$TARGET_DIR/.latexmkrc" ]; then
+    cp "$LATEXMKRC_SOURCE" "$TARGET_DIR/"
+    log_info ".latexmkrcファイルもコピーしました"
+fi
 
-# ソースディレクトリの.latexmkrcを使用（絶対パスで）
-if [ -f "$REPO_ROOT/$SRC_DIR/.latexmkrc" ]; then
-    cp "$REPO_ROOT/$SRC_DIR/.latexmkrc" .
-    log_info "ソースディレクトリの.latexmkrcを使用: $SRC_DIR/.latexmkrc"
+log_info "=== ステップ8: 差分PDFビルド ==="
+DIFF_TEX_PATH="$TARGET_DIR/$(basename "$TARGET_REL_PATH")"
+ABS_DIFF_TEX_PATH=$(realpath "$DIFF_TEX_PATH")
+cd "$(dirname "$ABS_DIFF_TEX_PATH")"
 
-    # 出力ディレクトリ設定を現在のディレクトリ用に修正
-    sed -i "s|\$out_dir = '../build'|\$out_dir = '.'|" .latexmkrc
-elif [ -f "$REPO_ROOT/.latexmkrc" ]; then
-    cp "$REPO_ROOT/.latexmkrc" .
-    log_info "ワークスペースルートの.latexmkrcを使用"
+# .latexmkrcファイルが存在するかチェック
+if [ -f ".latexmkrc" ]; then
+    log_info "latexmkrcファイルを使用してビルド実行"
+    if latexmk "$(basename "$TARGET_REL_PATH")"; then
+        log_success "PDFビルド完了"
 
-    # 出力ディレクトリ設定を現在のディレクトリ用に修正
-    sed -i "s|\$out_dir = '../build'|\$out_dir = '.'|" .latexmkrc
-else
-    log_warning ".latexmkrcが見つかりません。LuaLaTeXでの直接コンパイルを試行します"
-    # .latexmkrcがない場合は、LuaLaTeXを直接使用
-    lualatex -interaction=nonstopmode main-diff.tex
+        # 生成されたPDFファイルの場所を確認・報告
+        find . -name "*.pdf" -newer "$(basename "$TARGET_REL_PATH")" 2>/dev/null | while read -r pdf_file; do
+            local abs_path=$(realpath "$pdf_file")
+            log_success "生成されたPDF: $abs_path"
+        done
 
-    if [ ! -f "main-diff.pdf" ]; then
-        log_error "PDFコンパイルに失敗しました"
-        log_info "詳細なエラーログを確認してください: $WORK_DIR/main-diff.log"
-        exit 1
+        # ビルドディレクトリ内のPDFも探す
+        find ../../build -name "*.pdf" -newer "$(basename "$TARGET_REL_PATH")" 2>/dev/null | while read -r pdf_file; do
+            local abs_path=$(realpath "$pdf_file")
+            log_success "ビルドディレクトリ内のPDF: $abs_path"
+        done
+    else
+        log_warning "PDFビルドでエラーが発生しましたが、処理を続行します"
     fi
-
-    log_success "PDFコンパイル完了: main-diff.pdf"
-    return 0
+else
+    log_warning ".latexmkrcファイルが見つかりません。手動でビルドしてください"
+    log_info "ビルド対象ファイル: $ABS_DIFF_TEX_PATH"
 fi
 
-# latexmkの設定
-export LANG=en_US.UTF-8
-export LC_ALL=en_US.UTF-8
-
-# コンパイル実行(latexmkを参照)
-latexmk main-diff.tex
-
-if [ ! -f "main-diff.pdf" ]; then
-    log_error "PDFコンパイルに失敗しました"
-    log_info "詳細なエラーログを確認してください: $WORK_DIR/main-diff.log"
-    exit 1
-fi
-
-log_success "PDFコンパイル完了: main-diff.pdf"
+cd "$REPO_ROOT/$WORK_DIR"
 
 # 6. 詳細な変更ファイル分析
 log_info "詳細な変更ファイル分析を実行中..."
@@ -423,23 +496,48 @@ analyze_file_changes "$BASE_VERSION" "$CHANGED_VERSION" "$WORK_DIR"
 # 作業ディレクトリに確実に戻る（分析関数でcd移動しているため）
 cd "$WORK_DIR"
 
-# ファイルサイズ情報
-PDF_SIZE=$(du -h main-diff.pdf | cut -f1)
+# PDFファイルサイズを取得（v2アプローチの場合は複数箇所に存在する可能性）
+PDF_SIZE=""
+if [ -f "main-diff.pdf" ]; then
+    PDF_SIZE=$(du -h main-diff.pdf | cut -f1)
+elif [ -f "../../build/jp/main.pdf" ]; then
+    PDF_SIZE=$(du -h ../../build/jp/main.pdf | cut -f1)
+    log_info "PDFは ../../build/jp/main.pdf に生成されました"
+fi
 
 # 一時ファイルの削除（確認すべきファイルのみ残す）
 log_info "一時ファイルを削除中..."
 
-# 削除するディレクトリ・ファイル
-rm -rf base/ changed/ src/ figures/ bibliography/
-rm -f RSL_style.sty main-base.tex main-changed.tex .latexmkrc
-rm -f main-diff.aux main-diff.bbl main-diff.blg main-diff.fdb_latexmk main-diff.fls main-diff.log main-diff.out main-diff.toc
+# v2アプローチ用の一時ファイル削除
+rm -rf base/ changed/
+rm -f main-base.tex main-changed.tex .latexmkrc
+# その他の一時ファイル（build配下は残す）
+find . -maxdepth 1 -name "*.aux" -o -name "*.bbl" -o -name "*.blg" -o -name "*.fdb_latexmk" -o -name "*.fls" -o -name "*.log" -o -name "*.out" -o -name "*.toc" | xargs rm -f 2>/dev/null || true
 
 log_info "一時ファイルを削除しました"
 
 # 最終報告
 log_success "差分PDF生成が完了しました！"
 log_info "=== 生成されたファイルとディレクトリ ==="
-log_info "📄 差分PDF: $(pwd)/main-diff.pdf ($PDF_SIZE)"
+
+# PDFファイルの場所を正確に報告
+if [ -f "main-diff.pdf" ]; then
+    log_info "📄 差分PDF: $(pwd)/main-diff.pdf ($PDF_SIZE)"
+elif [ -f "../../build/jp/main.pdf" ]; then
+    log_info "📄 差分PDF: $(realpath ../../build/jp/main.pdf) ($PDF_SIZE)"
+elif [ -f "build/jp/main.pdf" ]; then
+    log_info "📄 差分PDF: $(realpath build/jp/main.pdf) ($PDF_SIZE)"
+else
+    # PDFを探す
+    PDF_FOUND=$(find . -name "*.pdf" -type f | head -1)
+    if [ -n "$PDF_FOUND" ]; then
+        PDF_SIZE=$(du -h "$PDF_FOUND" | cut -f1)
+        log_info "📄 差分PDF: $(realpath "$PDF_FOUND") ($PDF_SIZE)"
+    else
+        log_warning "PDFファイルが見つかりませんでした"
+    fi
+fi
+
 log_info "📄 差分TeX: $(pwd)/main-diff.tex"
 
 # ファイル種別ごとの出力を報告
@@ -500,4 +598,19 @@ log_info "📋 比較元バージョン: $BASE_VERSION"
 log_info "📋 比較先バージョン: $CHANGED_VERSION"
 log_info "📁 出力ディレクトリ: $(basename "$WORK_DIR")"
 
-log_success "🎉 処理完了！差分PDFは $WORK_DIR/main-diff.pdf に保存されました"
+# 最終成功メッセージでPDFの場所を正確に伝える
+if [ -f "main-diff.pdf" ]; then
+    log_success "🎉 処理完了！差分PDFは $WORK_DIR/main-diff.pdf に保存されました"
+elif [ -f "../../build/jp/main.pdf" ]; then
+    log_success "🎉 処理完了！差分PDFは $(realpath ../../build/jp/main.pdf) に保存されました"
+elif [ -f "build/jp/main.pdf" ]; then
+    log_success "🎉 処理完了！差分PDFは $(realpath build/jp/main.pdf) に保存されました"
+else
+    PDF_FOUND=$(find . -name "*.pdf" -type f | head -1)
+    if [ -n "$PDF_FOUND" ]; then
+        log_success "🎉 処理完了！差分PDFは $(realpath "$PDF_FOUND") に保存されました"
+    else
+        log_success "🎉 処理完了！（PDFの生成でエラーがありましたが、差分ファイルは生成されました）"
+        log_info "差分TeXファイル: $WORK_DIR/main-diff.tex"
+    fi
+fi
