@@ -83,8 +83,11 @@ if ! git rev-parse --verify "$CHANGED_VERSION" >/dev/null 2>&1; then
     exit 1
 fi
 
-# 作業用ディレクトリの初期化
-WORK_DIR="build/diff_$(basename ${TARGET_FILE%.*})"
+# 作業用ディレクトリの初期化（タグ間の差分を明示）
+# ディレクトリ名: diff_<ファイル名>_<base>-to-<changed>
+BASE_SHORT=$(echo "$BASE_VERSION" | sed 's/[^a-zA-Z0-9._-]/_/g')
+CHANGED_SHORT=$(echo "$CHANGED_VERSION" | sed 's/[^a-zA-Z0-9._-]/_/g')
+WORK_DIR="build/diff_$(basename ${TARGET_FILE%.*})_${BASE_SHORT}-to-${CHANGED_SHORT}"
 log_info "作業用ディレクトリを初期化中: $WORK_DIR"
 
 if [ -d "$WORK_DIR" ]; then
@@ -118,12 +121,13 @@ extract_latex_files() {
     done
 }
 
-# 画像ファイルの抽出関数（最新版のみ）
+# 画像ファイルの抽出関数（新旧両バージョン対応）
 extract_image_files() {
     local version="$1"
     local target_dir="$2"
+    local version_label="$3"  # "old" または "new"
 
-    log_info "  $version から画像ファイルを抽出中..."
+    log_info "  $version から画像ファイルを抽出中... ($version_label)"
 
     # 画像ファイルの拡張子
     git ls-tree -r --name-only "$version" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' | while read -r file; do
@@ -137,7 +141,15 @@ extract_image_files() {
         local target_dirname=$(dirname "$target_file")
 
         mkdir -p "$target_dirname"
-        git show "$version:$file" > "$target_file"
+        if git show "$version:$file" > "$target_file" 2>/dev/null; then
+            # 画像ファイルのold/new比較用にもコピー
+            local img_basename=$(basename "$file")
+            local img_ext="${img_basename##*.}"
+            local img_name="${img_basename%.*}"
+            
+            mkdir -p "$WORK_DIR/diff-img/$version_label"
+            cp "$target_file" "$WORK_DIR/diff-img/$version_label/"
+        fi
     done
 }
 
@@ -145,8 +157,9 @@ extract_image_files() {
 extract_latex_files "$BASE_VERSION" "$WORK_DIR/base"
 extract_latex_files "$CHANGED_VERSION" "$WORK_DIR/changed"
 
-# 画像ファイルは最新版（changed_version）のものを使用
-extract_image_files "$CHANGED_VERSION" "$WORK_DIR"
+# 画像ファイルは新旧両バージョンを抽出
+extract_image_files "$BASE_VERSION" "$WORK_DIR" "old"
+extract_image_files "$CHANGED_VERSION" "$WORK_DIR" "new"
 
 # ソースディレクトリのスタイルファイル等もコピー
 log_info "  ソースディレクトリのファイルをコピー中..."
@@ -265,85 +278,141 @@ fi
 
 log_success "PDFコンパイル完了: main-diff.pdf"
 
-# 6. 完了報告
-log_info "変更ファイルの確認..."
+# 6. 詳細な変更ファイル分析
+log_info "詳細な変更ファイル分析を実行中..."
 
-# LaTeX関連ファイルのgit diff保存
-log_info "LaTeX関連ファイルのGit差分を保存中..."
-
-# LaTeX関連ファイルの拡張子パターン
-LATEX_EXTENSIONS='\.(tex|bib|cls|sty)$'
-
-# LaTeX関連ファイルの変更リストを取得
-CHANGED_LATEX_FILES=$(git diff --name-only "$BASE_VERSION" "$CHANGED_VERSION" | grep -E "$LATEX_EXTENSIONS" || true)
-
-if [ -n "$CHANGED_LATEX_FILES" ]; then
-    # 現在のディレクトリを保存
-    CURRENT_DIR=$(pwd)
-    log_info "  現在のディレクトリ: $CURRENT_DIR"
-
-    # 親ディレクトリでgit diffを実行して結果を保存
+# 分析関数: ファイル種別ごとの差分検出
+analyze_file_changes() {
+    local base_ver="$1"
+    local changed_ver="$2"
+    local work_dir="$3"
+    
+    log_info "ファイル種別ごとの変更分析を開始..."
+    
+    # Git差分の全体を取得
     cd "$(git rev-parse --show-toplevel)"
-    log_info "  Git diffを実行中: $(pwd)"
-    git diff "$BASE_VERSION" "$CHANGED_VERSION" -- $(echo "$CHANGED_LATEX_FILES" | tr '\n' ' ') > "$WORK_DIR/git-diff.diff"
+    
+    # 1. styファイルの変更検出
+    local changed_sty=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.sty$' || true)
+    if [ -n "$changed_sty" ]; then
+        log_warning "変更されたスタイルファイル(.sty):"
+        echo "$changed_sty" | while read -r file; do
+            echo "  - $file"
+        done
+        
+        mkdir -p "$work_dir/diff-styles"
+        echo "$changed_sty" | while read -r file; do
+            local basename_file=$(basename "$file")
+            git show "$base_ver:$file" > "$work_dir/diff-styles/${basename_file}.old" 2>/dev/null || true
+            git show "$changed_ver:$file" > "$work_dir/diff-styles/${basename_file}.new" 2>/dev/null || true
+        done
+        
+        # styファイル専用のgit diff
+        git diff "$base_ver" "$changed_ver" -- $(echo "$changed_sty" | tr '\n' ' ') > "$work_dir/git-diff-styles.diff"
+        log_info "スタイルファイル差分を diff-styles/ と git-diff-styles.diff に保存"
+    else
+        log_info "スタイルファイル(.sty)に変更はありません"
+    fi
+    
+    # 2. clsファイルの変更検出
+    local changed_cls=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.cls$' || true)
+    if [ -n "$changed_cls" ]; then
+        log_warning "変更されたクラスファイル(.cls):"
+        echo "$changed_cls" | while read -r file; do
+            echo "  - $file"
+        done
+        
+        mkdir -p "$work_dir/diff-classes"
+        echo "$changed_cls" | while read -r file; do
+            local basename_file=$(basename "$file")
+            git show "$base_ver:$file" > "$work_dir/diff-classes/${basename_file}.old" 2>/dev/null || true
+            git show "$changed_ver:$file" > "$work_dir/diff-classes/${basename_file}.new" 2>/dev/null || true
+        done
+        
+        # clsファイル専用のgit diff
+        git diff "$base_ver" "$changed_ver" -- $(echo "$changed_cls" | tr '\n' ' ') > "$work_dir/git-diff-classes.diff"
+        log_info "クラスファイル差分を diff-classes/ と git-diff-classes.diff に保存"
+    else
+        log_info "クラスファイル(.cls)に変更はありません"
+    fi
+    
+    # 3. texファイルの変更検出（詳細分析）
+    local changed_tex=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.tex$' || true)
+    if [ -n "$changed_tex" ]; then
+        log_warning "変更されたTeXファイル(.tex):"
+        echo "$changed_tex" | while read -r file; do
+            echo "  - $file"
+        done
+        
+        # texファイル専用のgit diff
+        git diff "$base_ver" "$changed_ver" -- $(echo "$changed_tex" | tr '\n' ' ') > "$work_dir/git-diff-tex.diff"
+        log_info "TeXファイル差分を git-diff-tex.diff に保存"
+    else
+        log_info "TeXファイル(.tex)に変更はありません"
+    fi
+    
+    # 4. bibファイルの変更検出（既存機能の強化）
+    local changed_bibs=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.bib$' || true)
+    if [ -n "$changed_bibs" ]; then
+        log_warning "変更された参考文献ファイル(.bib):"
+        echo "$changed_bibs" | while read -r file; do
+            echo "  - $file"
+        done
+        
+        mkdir -p "$work_dir/diff-bib"
+        echo "$changed_bibs" | while read -r file; do
+            local basename_file=$(basename "$file")
+            git show "$base_ver:$file" > "$work_dir/diff-bib/${basename_file}.old" 2>/dev/null || true
+            git show "$changed_ver:$file" > "$work_dir/diff-bib/${basename_file}.new" 2>/dev/null || true
+        done
+        
+        # bibファイル専用のgit diff
+        git diff "$base_ver" "$changed_ver" -- $(echo "$changed_bibs" | tr '\n' ' ') > "$work_dir/git-diff-bib.diff"
+        log_info "参考文献ファイル差分を diff-bib/ と git-diff-bib.diff に保存"
+    else
+        log_info "参考文献ファイル(.bib)に変更はありません"
+    fi
+    
+    # 5. 画像ファイルの変更検出（強化版）
+    local changed_images=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' || true)
+    if [ -n "$changed_images" ]; then
+        log_warning "変更された画像ファイル:"
+        echo "$changed_images" | while read -r file; do
+            echo "  - $file"
+        done
+        
+        # 画像変更の詳細分析
+        mkdir -p "$work_dir/diff-img-analysis"
+        echo "$changed_images" | while read -r file; do
+            local basename_file=$(basename "$file")
+            
+            # ファイルの変更種別を判定
+            if git show "$base_ver:$file" > /dev/null 2>&1; then
+                if git show "$changed_ver:$file" > /dev/null 2>&1; then
+                    echo "MODIFIED: $file" >> "$work_dir/diff-img-analysis/changes.log"
+                else
+                    echo "DELETED: $file" >> "$work_dir/diff-img-analysis/changes.log"
+                fi
+            else
+                echo "ADDED: $file" >> "$work_dir/diff-img-analysis/changes.log"
+            fi
+        done
+        
+        log_info "画像ファイル変更詳細を diff-img/ (old/new) と diff-img-analysis/ に保存"
+    else
+        log_info "画像ファイルに変更はありません"
+    fi
+    
+    # 6. 全体のLaTeX関連ファイル差分（統合版）
+    local all_latex_files=$(git diff --name-only "$base_ver" "$changed_ver" | grep -E '\.(tex|bib|cls|sty)$' || true)
+    if [ -n "$all_latex_files" ]; then
+        git diff "$base_ver" "$changed_ver" -- $(echo "$all_latex_files" | tr '\n' ' ') > "$work_dir/git-diff-all-latex.diff"
+        log_info "全LaTeX関連ファイル統合差分を git-diff-all-latex.diff に保存"
+    fi
+}
 
-    # 元のディレクトリに戻る
-    cd "$CURRENT_DIR"
-    log_info "  ディレクトリを復元: $(pwd)"
-
-    log_info "LaTeX関連ファイルのGit差分を git-diff.diff に保存しました"
-    log_info "変更されたLaTeX関連ファイル:"
-    echo "$CHANGED_LATEX_FILES" | while read -r file; do
-        echo "  - $file"
-    done
-else
-    log_info "LaTeX関連ファイルに変更はありません"
-fi
-
-# 変更された画像ファイルの検出
-CHANGED_IMAGES=$(git diff --name-only "$BASE_VERSION" "$CHANGED_VERSION" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' || true)
-
-# 変更されたbibファイルの検出
-CHANGED_BIBS=$(git diff --name-only "$BASE_VERSION" "$CHANGED_VERSION" | grep -E '\.bib$' || true)
-
-if [ -n "$CHANGED_IMAGES" ]; then
-    log_warning "以下の画像ファイルが変更されています（目視確認推奨）:"
-    echo "$CHANGED_IMAGES" | while read -r img; do
-        echo "  - $img"
-    done
-
-    # 変更された画像を diff-img ディレクトリに保存
-    mkdir -p diff-img
-    echo "$CHANGED_IMAGES" | while read -r img; do
-        # Gitリポジトリのルートからの相対パスで画像を取得
-        repo_root="$(git rev-parse --show-toplevel)"
-        if [ -f "$repo_root/$img" ]; then
-            cp "$repo_root/$img" "diff-img/"
-        fi
-    done
-    log_info "変更された画像ファイルを diff-img/ にコピーしました"
-else
-    log_info "画像ファイルに変更はありません"
-fi
-
-if [ -n "$CHANGED_BIBS" ]; then
-    log_warning "以下の参考文献ファイル(.bib)が変更されています（目視確認推奨）:"
-    echo "$CHANGED_BIBS" | while read -r bib; do
-        echo "  - $bib"
-    done
-
-    # 変更されたbibファイルを diff-bib ディレクトリに保存
-    mkdir -p diff-bib
-    echo "$CHANGED_BIBS" | while read -r bib; do
-        # 新旧両方のbibファイルを保存
-        bib_basename=$(basename "$bib")
-        git show "$BASE_VERSION:$bib" > "diff-bib/${bib_basename}.old" 2>/dev/null || true
-        git show "$CHANGED_VERSION:$bib" > "diff-bib/${bib_basename}.new" 2>/dev/null || true
-    done
-    log_info "変更された参考文献ファイルを diff-bib/ にコピーしました（.old/.newで比較可能）"
-else
-    log_info "参考文献ファイルに変更はありません"
-fi
+# 変更ファイル分析を実行
+analyze_file_changes "$BASE_VERSION" "$CHANGED_VERSION" "$WORK_DIR"
 
 # ファイルサイズ情報
 PDF_SIZE=$(du -h main-diff.pdf | cut -f1)
@@ -360,20 +429,66 @@ log_info "一時ファイルを削除しました"
 
 # 最終報告
 log_success "差分PDF生成が完了しました！"
-log_info "生成されたファイル:"
-log_info "  差分PDF: $(pwd)/main-diff.pdf ($PDF_SIZE)"
-log_info "  差分TeX: $(pwd)/main-diff.tex"
-if [ -f "git-diff.diff" ]; then
-    DIFF_SIZE=$(du -h git-diff.diff | cut -f1)
-    log_info "  Git差分: $(pwd)/git-diff.diff ($DIFF_SIZE)"
-fi
-if [ -d "diff-img" ]; then
-    log_info "  変更画像: $(pwd)/diff-img/"
-fi
-if [ -d "diff-bib" ]; then
-    log_info "  変更参考文献: $(pwd)/diff-bib/ (.old/.newで比較)"
-fi
-log_info "  比較元: $BASE_VERSION"
-log_info "  比較先: $CHANGED_VERSION"
+log_info "=== 生成されたファイルとディレクトリ ==="
+log_info "📄 差分PDF: $(pwd)/main-diff.pdf ($PDF_SIZE)"
+log_info "📄 差分TeX: $(pwd)/main-diff.tex"
 
-log_info "処理完了！差分PDFは $WORK_DIR/main-diff.pdf に保存されました"
+# ファイル種別ごとの出力を報告
+if [ -f "git-diff-all-latex.diff" ]; then
+    DIFF_SIZE=$(du -h git-diff-all-latex.diff | cut -f1)
+    log_info "📄 全LaTeX差分: $(pwd)/git-diff-all-latex.diff ($DIFF_SIZE)"
+fi
+
+if [ -f "git-diff-tex.diff" ]; then
+    TEX_DIFF_SIZE=$(du -h git-diff-tex.diff | cut -f1)
+    log_info "📄 TeXファイル差分: $(pwd)/git-diff-tex.diff ($TEX_DIFF_SIZE)"
+fi
+
+if [ -f "git-diff-styles.diff" ]; then
+    STY_DIFF_SIZE=$(du -h git-diff-styles.diff | cut -f1)
+    log_info "🎨 スタイルファイル差分: $(pwd)/git-diff-styles.diff ($STY_DIFF_SIZE)"
+fi
+
+if [ -f "git-diff-classes.diff" ]; then
+    CLS_DIFF_SIZE=$(du -h git-diff-classes.diff | cut -f1)
+    log_info "📋 クラスファイル差分: $(pwd)/git-diff-classes.diff ($CLS_DIFF_SIZE)"
+fi
+
+if [ -f "git-diff-bib.diff" ]; then
+    BIB_DIFF_SIZE=$(du -h git-diff-bib.diff | cut -f1)
+    log_info "📚 参考文献差分: $(pwd)/git-diff-bib.diff ($BIB_DIFF_SIZE)"
+fi
+
+if [ -d "diff-img/old" ] && [ -d "diff-img/new" ]; then
+    OLD_COUNT=$(find diff-img/old -type f 2>/dev/null | wc -l)
+    NEW_COUNT=$(find diff-img/new -type f 2>/dev/null | wc -l)
+    log_info "🖼️  画像ファイル比較:"
+    log_info "   📁 変更前: $(pwd)/diff-img/old/ (${OLD_COUNT}個)"
+    log_info "   📁 変更後: $(pwd)/diff-img/new/ (${NEW_COUNT}個)"
+fi
+
+if [ -d "diff-img-analysis" ]; then
+    log_info "🔍 画像変更詳細: $(pwd)/diff-img-analysis/"
+fi
+
+if [ -d "diff-styles" ]; then
+    STY_COUNT=$(find diff-styles -name "*.old" 2>/dev/null | wc -l)
+    log_info "🎨 スタイルファイル比較: $(pwd)/diff-styles/ (${STY_COUNT}ファイル, .old/.new)"
+fi
+
+if [ -d "diff-classes" ]; then
+    CLS_COUNT=$(find diff-classes -name "*.old" 2>/dev/null | wc -l)
+    log_info "📋 クラスファイル比較: $(pwd)/diff-classes/ (${CLS_COUNT}ファイル, .old/.new)"
+fi
+
+if [ -d "diff-bib" ]; then
+    BIB_COUNT=$(find diff-bib -name "*.old" 2>/dev/null | wc -l)
+    log_info "📚 参考文献比較: $(pwd)/diff-bib/ (${BIB_COUNT}ファイル, .old/.new)"
+fi
+
+log_info "=== バージョン情報 ==="
+log_info "📋 比較元バージョン: $BASE_VERSION"
+log_info "📋 比較先バージョン: $CHANGED_VERSION"
+log_info "📁 出力ディレクトリ: $(basename "$WORK_DIR")"
+
+log_success "🎉 処理完了！差分PDFは $WORK_DIR/main-diff.pdf に保存されました"
