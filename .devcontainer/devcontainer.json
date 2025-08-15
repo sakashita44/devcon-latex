@@ -81,6 +81,7 @@
         "latex-workshop.linting.chktex.enabled": false,
         "latex-workshop.intellisense.package.enabled": true,
         "latex-workshop.latex.autoClean.run": "onSucceeded",
+        "latex-workshop.latex.clean.subfolder.enabled": true,
         "latex-workshop.latex.clean.fileTypes": [
           "*.aux",
           "*.bbl",
@@ -103,27 +104,19 @@
           "*.fdb_latexmk",
           "*.synctex.gz"
         ],
-        // 日本語フォント設定（BIZ UD明朝使用）
+        // latex-workshopのビルドツールとレシピ設定
         "latex-workshop.latex.tools": [
           {
-            "name": "lualatex",
-            "command": "lualatex",
+            "name": "latexmk",
+            "command": "latexmk",
             "args": [
-              "-synctex=1",
+              "-pdf",
               "-interaction=nonstopmode",
-              "-file-line-error",
               "%DOC%"
             ]
           },
           {
-            "name": "bibtex",
-            "command": "bibtex",
-            "args": [
-              "%DOCFILE%"
-            ]
-          },
-          {
-            "name": "clean",
+            "name": "latexmk-clean",
             "command": "latexmk",
             "args": [
               "-c"
@@ -132,28 +125,15 @@
         ],
         "latex-workshop.latex.recipes": [
           {
-            "name": "LuaLaTeX Temporary: lualatex",
+            "name": "latexmk",
             "tools": [
-              "lualatex"
-            ]
-          },
-          {
-            "name": "LuaLaTeX Full: lualatex -> bibtex -> lualatex*2",
-            "tools": [
-              "lualatex",
-              "bibtex",
-              "lualatex",
-              "lualatex"
-            ]
-          },
-          {
-            "name": "lualatex (BIZ UD)",
-            "tools": [
-              "lualatex"
+              "latexmk"
             ]
           }
         ],
-        "latex-workshop.latex.recipe.default": "LuaLaTeX Temporary: lualatex",
+        "latex-workshop.latex.recipe.default": "latexmk",
+        // latexmkrcファイルの設定を優先
+        "latex-workshop.latex.option.maxPrintLine.enabled": false,
         // 言語別エディタ設定
         "[tex]": {
           "editor.formatOnSave": true,
