@@ -15,6 +15,10 @@
     },
     "ghcr.io/devcontainers/features/git:1": {}
   },
+  "containerEnv": {
+    "LC_ALL": "C.UTF-8",
+    "LANG": "C.UTF-8"
+  },
   "postCreateCommand": "sudo chmod +x .devcontainer/setup.sh && .devcontainer/setup.sh",
   "customizations": {
     "vscode": {

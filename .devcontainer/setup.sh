@@ -29,6 +29,25 @@ sudo sed -i '/ja_JP.UTF-8/s/^# //g' /etc/locale.gen
 sudo locale-gen
 sudo update-locale LANG=ja_JP.UTF-8
 
+# ロケールの確認と環境変数の設定
+echo "利用可能なロケール:"
+locale -a | grep ja || echo "日本語ロケールが見つかりません"
+
+# 利用可能なロケール形式を自動検出して設定
+if locale -a | grep -q "ja_JP.utf8"; then
+    export LC_ALL=ja_JP.utf8
+    export LANG=ja_JP.utf8
+    echo "ロケールをja_JP.utf8に設定"
+elif locale -a | grep -q "ja_JP.UTF-8"; then
+    export LC_ALL=ja_JP.UTF-8
+    export LANG=ja_JP.UTF-8
+    echo "ロケールをja_JP.UTF-8に設定"
+else
+    echo "日本語ロケールが利用できません。C.UTF-8を使用します"
+    export LC_ALL=C.UTF-8
+    export LANG=C.UTF-8
+fi
+
 # クリーンアップ
 echo "5/5: クリーンアップ中..."
 sudo apt-get clean

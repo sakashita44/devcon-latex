@@ -19,8 +19,8 @@ services:
 
     environment:
       - SHELL=/bin/bash
-      - LANG=ja_JP.UTF-8
-      - LC_ALL=ja_JP.UTF-8
+      - LANG=C.UTF-8
+      - LC_ALL=C.UTF-8
       # .envファイルから環境変数を読み込み
       # - USER_EMAIL=${USER_EMAIL}
       # - API_BASE_URL=${API_BASE_URL}
