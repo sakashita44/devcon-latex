@@ -5,6 +5,8 @@ main.pdf
 .vscode/
 *.pdf
 diff_output/*
+*.tmp
+*.old
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
