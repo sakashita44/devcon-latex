@@ -7,6 +7,9 @@ $lualatex = 'lualatex -interaction=nonstopmode %O %S';
 $bibtex_use = 2;
 $max_repeat = 5;  # 最大繰り返し回数
 
+# BibTeX設定
+$ENV{'BIBINPUTS'} = '../bibliography/:' . ($ENV{'BIBINPUTS'} || '');
+
 # クリーンアップ対象
 $clean_ext = "aux bbl blg fdb_latexmk fls log nav out snm toc";
 

@@ -14,6 +14,12 @@
 \usepackage{geometry}
 \geometry{margin=2.5cm}
 
+% 画像パス設定
+\graphicspath{{../figures/}{../../figures/}}
+
+% importパッケージ使用
+\usepackage{import}
+
 % タイトル設定
 \title{Sample Document for pdfLaTeX}
 \author{Test Author}
@@ -68,13 +74,19 @@ And some inline math: $\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$.
     \label{tab:sample}
 \end{table}
 
+% 章ファイル読み込み
+\import{chapters/}{chapter-example.tex}
+
 \section{References}
 
 This document demonstrates the basic functionality of pdfLaTeX compilation. For more information, visit \url{https://www.latex-project.org/}.
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
 
 \section{Conclusion}
 
 This document should compile successfully with pdfLaTeX and can be used to test the auto-build functionality of LaTeX Workshop.
 
 \end{document}
-% Test comment

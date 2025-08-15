@@ -1,8 +1,11 @@
 \documentclass[12pt,a4paper]{ltjsbook}
 \usepackage{../RSL_style}
 
-% 画像パス設定（将来の階層変更に対応）
+% 画像パス設定
 \graphicspath{{../figures/}{../../figures/}}
+
+% importパッケージ使用
+\usepackage{import}
 
 \title{日本語版テスト文書}
 \author{テスト}
@@ -18,5 +21,12 @@
 \section{拡張性テスト}
 
 この文書は将来の複数ターゲット対応の実証に使用されます。
+
+% 章ファイル読み込み
+\import{chapters/}{chapter-example.tex}
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
 
 \end{document}

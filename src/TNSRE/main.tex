@@ -1,8 +1,11 @@
 \documentclass[12pt,a4paper]{ltjsbook}
 \usepackage{../RSL_style}
 
-% 画像パス設定（将来の階層変更に対応）
+% 画像パス設定
 \graphicspath{{../figures/}{../../figures/}}
+
+% importパッケージ使用
+\usepackage{import}
 
 \title{TNSRE Version Test Document}
 \author{Test Author}
@@ -18,5 +21,12 @@ This is a test document for TNSRE version.
 \section{Extensibility Testing}
 
 This document is used for demonstrating future multi-target support capabilities.
+
+% 章ファイル読み込み
+\import{chapters/}{chapter-example.tex}
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
 
 \end{document}

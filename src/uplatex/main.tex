@@ -5,9 +5,16 @@
 \usepackage{otf}
 \usepackage{amsmath,amssymb,amsfonts}
 \usepackage{graphicx}
+\usepackage[dvips]{color}
 \usepackage{url}
 \usepackage{geometry}
 \geometry{margin=2.5cm}
+
+% 画像パス設定
+\graphicspath{{./figures/}{../figures/}}
+
+% importパッケージ使用
+\usepackage{import}
 
 % タイトル設定
 \title{upLaTeX用サンプル文書}
@@ -74,9 +81,16 @@ upLaTeXでは以下のような日本語の特徴を適切に処理できます:
     \item 数式との組み合わせ: 円周率は$\pi \approx 3.14159$である
 \end{itemize}
 
+% 章ファイル読み込み
+\import{chapters/}{chapter-example.tex}
+
 \section{参考文献}
 
 upLaTeXの詳細については、日本語LaTeXの公式ドキュメントを参照してください。
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
 
 \section{まとめ}
 
