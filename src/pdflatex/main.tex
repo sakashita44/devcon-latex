@@ -17,9 +17,6 @@
 % 画像パス設定
 \graphicspath{{../figures/}{../../figures/}}
 
-% importパッケージ使用
-\usepackage{import}
-
 % タイトル設定
 \title{Sample Document for pdfLaTeX}
 \author{Test Author}
@@ -75,7 +72,7 @@ And some inline math: $\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$.
 \end{table}
 
 % 章ファイル読み込み
-\import{chapters/}{chapter-example.tex}
+\include{chapters/chapter-example}
 
 \section{References}
 

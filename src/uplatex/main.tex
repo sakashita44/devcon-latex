@@ -13,9 +13,6 @@
 % 画像パス設定
 \graphicspath{{./figures/}{../figures/}}
 
-% importパッケージ使用
-\usepackage{import}
-
 % タイトル設定
 \title{upLaTeX用サンプル文書}
 \author{テスト作成者}
@@ -82,7 +79,7 @@ upLaTeXでは以下のような日本語の特徴を適切に処理できます:
 \end{itemize}
 
 % 章ファイル読み込み
-\import{chapters/}{chapter-example.tex}
+\include{chapters/chapter-example}
 
 \section{参考文献}
 

@@ -4,9 +4,6 @@
 % 画像パス設定
 \graphicspath{{../figures/}{../../figures/}}
 
-% importパッケージ使用
-\usepackage{import}
-
 \title{日本語版テスト文書}
 \author{テスト}
 \date{\today}
@@ -23,7 +20,7 @@
 この文書は将来の複数ターゲット対応の実証に使用されます。
 
 % 章ファイル読み込み
-\import{chapters/}{chapter-example.tex}
+\include{chapters/chapter-example}
 
 % 参考文献
 \bibliographystyle{plain}
