@@ -110,30 +110,36 @@
             "name": "latexmk",
             "command": "latexmk",
             "args": [
-              "-pdf",
               "-interaction=nonstopmode",
               "%DOC%"
-            ]
+            ],
+            "env": {}
           },
           {
             "name": "latexmk-clean",
             "command": "latexmk",
             "args": [
-              "-c"
-            ]
+              "-c",
+              "%DOC%"
+            ],
+            "env": {}
           }
         ],
         "latex-workshop.latex.recipes": [
           {
-            "name": "latexmk",
+            "name": "latexmk (auto-detect engine)",
             "tools": [
               "latexmk"
             ]
           }
         ],
-        "latex-workshop.latex.recipe.default": "latexmk",
-        // latexmkrcファイルの設定を優先
+        "latex-workshop.latex.recipe.default": "latexmk (auto-detect engine)",
+        // .latexmkrcファイルの設定を完全に優先
         "latex-workshop.latex.option.maxPrintLine.enabled": false,
+        "latex-workshop.latex.build.forceRecipeUsage": false,
+        "latex-workshop.latex.search.rootFiles.enabled": true,
+        "latex-workshop.latex.rootFile.doNotPrompt": true,
+        "latex-workshop.latex.rootFile.useSubFile": true,
         // 言語別エディタ設定
         "[tex]": {
           "editor.formatOnSave": true,
