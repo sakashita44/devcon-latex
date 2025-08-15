@@ -32,16 +32,17 @@ log_error() {
 # 使用方法を表示
 show_usage() {
     cat << EOF
-使用方法: $0 <main_tex_file> <base_version> <changed_version>
+使用方法: $0 <target_tex_file> <base_version> <changed_version>
 
 引数:
-  main_tex_file    プロジェクトのメインとなる.texファイル名 (例: main.tex)
+  target_tex_file  ビルド対象の.texファイルのパス (例: src/main.tex, src/jp/main.tex)
   base_version     比較元となるGitのバージョン (タグ、コミットID、ブランチ名など)
   changed_version  比較先となるGitのバージョン
 
 例:
-  $0 main.tex v1.0.0 test
-  $0 main.tex HEAD~1 HEAD
+  $0 src/main.tex v1.0.0 test
+  $0 src/jp/main.tex HEAD~1 HEAD
+  $0 src/TNSRE/main.tex v1.0 v2.0
 EOF
 }
 
@@ -59,8 +60,15 @@ MAIN_TEX="$1"
 BASE_VERSION="$2"
 CHANGED_VERSION="$3"
 
+# TARGET指定からファイル名とソースディレクトリを抽出
+TARGET_FILE="$MAIN_TEX"
+SRC_DIR="$(dirname "$TARGET_FILE")"
+MAIN_TEX_NAME="$(basename "$TARGET_FILE")"
+
 log_info "設定:"
-log_info "  メインファイル: $MAIN_TEX"
+log_info "  ターゲットファイル: $TARGET_FILE"
+log_info "  ソースディレクトリ: $SRC_DIR"
+log_info "  メインファイル名: $MAIN_TEX_NAME"
 log_info "  比較元バージョン: $BASE_VERSION"
 log_info "  比較先バージョン: $CHANGED_VERSION"
 
@@ -76,7 +84,7 @@ if ! git rev-parse --verify "$CHANGED_VERSION" >/dev/null 2>&1; then
 fi
 
 # 作業用ディレクトリの初期化
-WORK_DIR="diff_output"
+WORK_DIR="build/diff_$(basename ${TARGET_FILE%.*})"
 log_info "作業用ディレクトリを初期化中: $WORK_DIR"
 
 if [ -d "$WORK_DIR" ]; then
@@ -119,7 +127,13 @@ extract_image_files() {
 
     # 画像ファイルの拡張子
     git ls-tree -r --name-only "$version" | grep -E '\.(png|jpg|jpeg|pdf|eps|svg)$' | while read -r file; do
-        local target_file="$target_dir/$file"
+        # src/ プレフィックスを除去して、作業ディレクトリに直接配置
+        local relative_file="$file"
+        if [[ "$file" == src/* ]]; then
+            relative_file="${file#src/}"
+        fi
+
+        local target_file="$target_dir/$relative_file"
         local target_dirname=$(dirname "$target_file")
 
         mkdir -p "$target_dirname"
@@ -134,26 +148,27 @@ extract_latex_files "$CHANGED_VERSION" "$WORK_DIR/changed"
 # 画像ファイルは最新版（changed_version）のものを使用
 extract_image_files "$CHANGED_VERSION" "$WORK_DIR"
 
-# ルートレベルのスタイルファイル等もコピー
-log_info "  ルートレベルのファイルをコピー中..."
+# ソースディレクトリのスタイルファイル等もコピー
+log_info "  ソースディレクトリのファイルをコピー中..."
+REPO_ROOT="$(git rev-parse --show-toplevel)"
 for ext in "sty" "cls" "bib"; do
-    find . -maxdepth 1 -name "*.$ext" -exec cp {} "$WORK_DIR/" \;
+    find "$REPO_ROOT/$SRC_DIR" -maxdepth 1 -name "*.$ext" -exec cp {} "$WORK_DIR/" \; 2>/dev/null || true
 done
 
-# bibliographyディレクトリもコピー（存在する場合）
-if [ -d "bibliography" ]; then
+# bibliographyディレクトリもコピー（ソースディレクトリから）
+if [ -d "$REPO_ROOT/$SRC_DIR/bibliography" ]; then
     log_info "  bibliographyディレクトリをコピー中..."
-    cp -r bibliography "$WORK_DIR/"
+    cp -r "$REPO_ROOT/$SRC_DIR/bibliography" "$WORK_DIR/"
 fi
 
 # メインファイルの存在確認
-if [ ! -f "$WORK_DIR/base/$MAIN_TEX" ]; then
-    log_error "比較元バージョンにメインファイル '$MAIN_TEX' が見つかりません"
+if [ ! -f "$WORK_DIR/base/$TARGET_FILE" ]; then
+    log_error "比較元バージョンにターゲットファイル '$TARGET_FILE' が見つかりません"
     exit 1
 fi
 
-if [ ! -f "$WORK_DIR/changed/$MAIN_TEX" ]; then
-    log_error "比較先バージョンにメインファイル '$MAIN_TEX' が見つかりません"
+if [ ! -f "$WORK_DIR/changed/$TARGET_FILE" ]; then
+    log_error "比較先バージョンにターゲットファイル '$TARGET_FILE' が見つかりません"
     exit 1
 fi
 
@@ -162,15 +177,15 @@ log_info "ソースファイルを平坦化中..."
 
 # 平坦化実行
 log_info "  作業ディレクトリ: $(pwd)"
-cd "$WORK_DIR/base"
+cd "$WORK_DIR/base/$SRC_DIR"
 log_info "  比較元バージョンを平坦化中... (現在: $(pwd))"
-latexpand "$MAIN_TEX" > "../main-base.tex"
+latexpand "$MAIN_TEX_NAME" > "../../main-base.tex"
 
-cd "../changed"
+cd "../../changed/$SRC_DIR"
 log_info "  比較先バージョンを平坦化中... (現在: $(pwd))"
-latexpand "$MAIN_TEX" > "../main-changed.tex"
+latexpand "$MAIN_TEX_NAME" > "../../main-changed.tex"
 
-cd ".."
+cd "../.."
 log_info "  平坦化後のディレクトリ: $(pwd)"
 
 # 平坦化結果の確認
@@ -203,11 +218,36 @@ log_success "差分ファイル生成完了: main-diff.tex"
 # 5. PDFへのコンパイル
 log_info "PDFをコンパイル中..."
 
-# ルートの.latexmkrcを使用（作業ディレクトリの外のルート）
-if [ -f ../.latexmkrc ]; then
-    cp ../.latexmkrc .
+# 現在のディレクトリを保存
+CURRENT_DIR=$(pwd)
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+
+# ソースディレクトリの.latexmkrcを使用（絶対パスで）
+if [ -f "$REPO_ROOT/$SRC_DIR/.latexmkrc" ]; then
+    cp "$REPO_ROOT/$SRC_DIR/.latexmkrc" .
+    log_info "ソースディレクトリの.latexmkrcを使用: $SRC_DIR/.latexmkrc"
+
+    # 出力ディレクトリ設定を現在のディレクトリ用に修正
+    sed -i "s|\$out_dir = '../build'|\$out_dir = '.'|" .latexmkrc
+elif [ -f "$REPO_ROOT/.latexmkrc" ]; then
+    cp "$REPO_ROOT/.latexmkrc" .
+    log_info "ワークスペースルートの.latexmkrcを使用"
+
+    # 出力ディレクトリ設定を現在のディレクトリ用に修正
+    sed -i "s|\$out_dir = '../build'|\$out_dir = '.'|" .latexmkrc
 else
-    log_warning "ルートの.latexmkrcが見つかりません。後続のコンパイルでエラーが発生する可能性があります"
+    log_warning ".latexmkrcが見つかりません。LuaLaTeXでの直接コンパイルを試行します"
+    # .latexmkrcがない場合は、LuaLaTeXを直接使用
+    lualatex -interaction=nonstopmode main-diff.tex
+
+    if [ ! -f "main-diff.pdf" ]; then
+        log_error "PDFコンパイルに失敗しました"
+        log_info "詳細なエラーログを確認してください: $WORK_DIR/main-diff.log"
+        exit 1
+    fi
+
+    log_success "PDFコンパイル完了: main-diff.pdf"
+    return 0
 fi
 
 # latexmkの設定
@@ -243,7 +283,7 @@ if [ -n "$CHANGED_LATEX_FILES" ]; then
     log_info "  現在のディレクトリ: $CURRENT_DIR"
 
     # 親ディレクトリでgit diffを実行して結果を保存
-    cd ..
+    cd "$(git rev-parse --show-toplevel)"
     log_info "  Git diffを実行中: $(pwd)"
     git diff "$BASE_VERSION" "$CHANGED_VERSION" -- $(echo "$CHANGED_LATEX_FILES" | tr '\n' ' ') > "$WORK_DIR/git-diff.diff"
 
@@ -275,8 +315,10 @@ if [ -n "$CHANGED_IMAGES" ]; then
     # 変更された画像を diff-img ディレクトリに保存
     mkdir -p diff-img
     echo "$CHANGED_IMAGES" | while read -r img; do
-        if [ -f "../$img" ]; then
-            cp "../$img" "diff-img/"
+        # Gitリポジトリのルートからの相対パスで画像を取得
+        repo_root="$(git rev-parse --show-toplevel)"
+        if [ -f "$repo_root/$img" ]; then
+            cp "$repo_root/$img" "diff-img/"
         fi
     done
     log_info "変更された画像ファイルを diff-img/ にコピーしました"
@@ -310,7 +352,7 @@ PDF_SIZE=$(du -h main-diff.pdf | cut -f1)
 log_info "一時ファイルを削除中..."
 
 # 削除するディレクトリ・ファイル
-rm -rf base/ changed/ figures/ bibliography/
+rm -rf base/ changed/ src/ figures/ bibliography/
 rm -f RSL_style.sty main-base.tex main-changed.tex .latexmkrc
 rm -f main-diff.aux main-diff.bbl main-diff.blg main-diff.fdb_latexmk main-diff.fls main-diff.log main-diff.out main-diff.toc
 
