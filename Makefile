@@ -17,6 +17,12 @@ LATEX_ENGINE ?= lualatex
 BIBTEX_ENGINE ?= bibtex
 ENABLE_LATEXINDENT ?= true
 
+# Make-level TARGET default (can be overridden on command line)
+TARGET ?= $(MAIN_TEX)
+
+# suppress "Entering/Leaving directory" messages from make
+MAKEFLAGS += --no-print-directory
+
 .PHONY: diff diff-pdf clean help test-tag build build-safe watch
 .PHONY: dvc-init dvc-status dvc-check-connection dvc-add-images _check-dvc-initialized
 .PHONY: validate validate-git validate-latex validate-dvc validate-tags
@@ -90,23 +96,22 @@ help:
 # LaTeX文書ビルド
 build:
 	@echo "LaTeX文書をビルド中..."
-	@latexmk $(MAIN_TEX)
-	@echo "ビルド完了: $(MAIN_TEX:.tex=.pdf)"
+	@./scripts/build/build.sh build "$(TARGET)"
+	@echo "ビルド完了"
 
 # バリデーション付きビルド
 build-safe:
 	@echo "=== 安全ビルド（バリデーション付き） ==="
-	@$(MAKE) validate-latex
+	@$(MAKE) validate TARGET="$(TARGET)"
 	@echo ""
-	@echo "LaTeX文書をビルド中..."
-	@latexmk $(MAIN_TEX)
-	@echo "ビルド完了: $(MAIN_TEX:.tex=.pdf)"
+	@$(MAKE) build TARGET="$(TARGET)"
+	@echo "安全ビルド完了"
 
 # ファイル変更監視ビルド
 watch:
 	@echo "ファイル変更監視モード開始..."
 	@echo "Ctrl+C で停止"
-	@latexmk -pvc $(MAIN_TEX)
+	@./scripts/build/build.sh watch "$(TARGET)"
 
 # Git差分表示
 diff:
@@ -143,7 +148,7 @@ test-tag:
 # クリーンアップ
 clean:
 	@echo "出力ファイルをクリーンアップ中..."
-	@latexmk -C
+	@./scripts/build/build.sh clean "$(TARGET)"
 	@rm -rf diff_output
 	@echo "クリーンアップ完了"
 

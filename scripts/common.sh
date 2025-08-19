@@ -72,6 +72,56 @@ resolve_path() {
     fi
 }
 
+# find_up_file: 指定開始パスから上方向へファイルを探索するユーティリティ
+# 引数: (filename, start_path, max_levels)
+# 出力: 見つかったファイルの絶対パスを標準出力へ（見つからなければ何も出力せず非ゼロ終了）
+find_up_file() {
+    local filename="$1"
+    local start_path="$2"
+    local max_levels="${3:-3}"
+
+    if [ -z "$filename" ] || [ -z "$start_path" ]; then
+        print_error "find_up_file: 引数が不正です。usage: find_up_file <filename> <start_path> [max_levels]"
+        return 2
+    fi
+
+    local cur_dir
+    cur_dir="$(resolve_path "$start_path")" || return 3
+    local i=0
+    while [ $i -le "$max_levels" ]; do
+        if [ -f "$cur_dir/$filename" ]; then
+            resolve_path "$cur_dir/$filename"
+            return 0
+        fi
+        if [ "$cur_dir" = "/" ] || [ "$cur_dir" = "" ]; then
+            break
+        fi
+        cur_dir="$(dirname "$cur_dir")"
+        i=$((i + 1))
+    done
+    return 1
+}
+
+# get_config_value: 指定されたコンフィグファイル（パス）からキーの値を安全に取得する
+# 引数: (key, config_path)
+# 出力: 値を標準出力へ（見つからなければ空）
+get_config_value() {
+    local key="$1"
+    local cfg_path="$2"
+    if [ -z "$key" ] || [ -z "$cfg_path" ]; then
+        print_error "get_config_value: usage: get_config_value <KEY> <CONFIG_PATH>"
+        return 2
+    fi
+    if [ ! -f "$cfg_path" ]; then
+        return 0
+    fi
+    # match lines like KEY=... (first occurrence)
+    local line
+    line=$(grep -E "^${key}=" "$cfg_path" | sed -n "s/^${key}=//p" | sed 's/^ *//; s/ *$//') || true
+    printf '%s' "$line"
+    return 0
+}
+
 # 除外リストチェック
 is_excluded() {
     local file="$1"

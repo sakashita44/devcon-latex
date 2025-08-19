@@ -9,6 +9,7 @@ main.pdf
 
 # Build outputs
 build/
+log/
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
