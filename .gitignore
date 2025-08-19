@@ -4,7 +4,11 @@ latex.config
 main.pdf
 .vscode/
 *.pdf
-diff_output/*
+*.tmp
+*.old
+
+# Build outputs
+build/
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
