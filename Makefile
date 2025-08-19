@@ -96,12 +96,14 @@ help:
 # LaTeX文書ビルド
 build:
 	@echo "LaTeX文書をビルド中..."
+	@echo "ターゲット: $(TARGET)"
 	@./scripts/build/build.sh build "$(TARGET)"
 	@echo "ビルド完了"
 
 # バリデーション付きビルド
 build-safe:
 	@echo "=== 安全ビルド（バリデーション付き） ==="
+	@echo "ターゲット: $(TARGET)"
 	@$(MAKE) validate TARGET="$(TARGET)"
 	@echo ""
 	@$(MAKE) build TARGET="$(TARGET)"
@@ -110,6 +112,7 @@ build-safe:
 # ファイル変更監視ビルド
 watch:
 	@echo "ファイル変更監視モード開始..."
+	@echo "ターゲット: $(TARGET)"
 	@echo "Ctrl+C で停止"
 	@./scripts/build/build.sh watch "$(TARGET)"
 
@@ -148,6 +151,7 @@ test-tag:
 # クリーンアップ
 clean:
 	@echo "出力ファイルをクリーンアップ中..."
+	@echo "ターゲット: $(TARGET)"
 	@./scripts/build/build.sh clean "$(TARGET)"
 	@rm -rf diff_output
 	@echo "クリーンアップ完了"
