@@ -1,9 +1,23 @@
 # LaTeX-DVC ワークフロー設定ファイル
-# このファイルを latex.config にコピーして使用してください
+# このファイルを /config にコピーして使用してください
 
-# メインTeXファイル
-MAIN_TEX=main.tex
+### 基本ビルド関係 ###
+# デフォルトのターゲットファイル(make build等でTARGETが指定されない場合に使用)
+DEFAULT_TARGET=src/main.tex
+# latexmkのオプション 指定しない場合は latexmk -cd <TARGET> -r .latexmkrc(ターゲットと同階層か1階層上のもの) で実行される
+# 例
+# -c -silent: コンパイル後に中間ファイルを削除し、出力を抑制
+LATEXMK_OPTIONS=-c -silent
 
+### 差分生成関係 ###
+# デフォルトのmake diffの出力ディレクトリ(make diffでOUT_DIRが指定されない場合に使用)
+DEFAULT_OUT_DIR=build/
+# Gitの差分を出力する拡張子リスト
+GIT_DIFF_EXTENSIONS=tex sty cls bib bst
+# 画像差分を出力する拡張子リスト
+IMAGE_DIFF_EXTENSIONS=png jpg jpeg pdf eps svg
+
+### DVC関係設定 ###
 # DVC管理対象の画像ファイル拡張子（スペース区切り）
 # DVC使用時のみ必要、DVC不使用の場合は空白でOK
 IMAGE_EXTENSIONS=png jpg jpeg pdf eps svg
@@ -22,7 +36,7 @@ DVC_REMOTE_NAME=storage
 # DVC_REMOTE_URL=ssh://user@server/path/to/storage
 # DVC_REMOTE_URL=s3://your-bucket/latex-figures
 # DVC_REMOTE_URL=/path/to/shared/storage
-DVC_REMOTE_URL=
+DVC_REMOTE_URL=/any/tmp/dvc-storage/
 
 # ビルド時のオプション
 LATEX_ENGINE=lualatex

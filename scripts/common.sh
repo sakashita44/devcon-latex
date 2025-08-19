@@ -38,6 +38,40 @@ check_file_exists() {
     fi
 }
 
+# パス解決: 相対パスを絶対化し、環境変数とチルダを展開して返す
+# 引数: パス文字列
+# 出力: 絶対パスを標準出力へ
+# 返り値: 0 成功, 非ゼロ 失敗
+resolve_path() {
+    local p="$1"
+    if [ -z "$p" ]; then
+        print_error "resolve_path: 引数が空です"
+        return 1
+    fi
+    # 環境変数とチルダ展開 (eval を限定的に使用)
+    # 注意: 設定ファイル由来の値を安全に扱う前提
+    eval "p=\"$p\""
+
+    # readlink -f で正規化できれば使う
+    if command -v readlink >/dev/null 2>&1; then
+        readlink -f -- "$p" || return 1
+        return $?
+    fi
+
+    # realpath を試す
+    if command -v realpath >/dev/null 2>&1; then
+        realpath "$p" || return 1
+        return $?
+    fi
+
+    # 最低限の相対→絶対変換
+    if [ "${p#/}" = "$p" ]; then
+        printf '%s\n' "$(pwd)/$p"
+    else
+        printf '%s\n' "$p"
+    fi
+}
+
 # 除外リストチェック
 is_excluded() {
     local file="$1"

@@ -8,7 +8,7 @@ ifneq (,$(wildcard latex.config))
 endif
 
 # デフォルト設定
-MAIN_TEX ?= main.tex
+MAIN_TEX ?= src/main.tex
 IMAGE_EXTENSIONS ?= png jpg jpeg pdf eps svg
 DVC_MANAGED_DIRS ?= figures
 DVC_REMOTE_NAME ?= storage
@@ -294,67 +294,24 @@ validate:
 	@echo "=== 全体バリデーション ==="
 	@echo "プロジェクトの状態を確認中..."
 	@echo ""
-	@$(MAKE) validate-git
+	@$(MAKE) --no-print-directory validate-git
 	@echo ""
-	@$(MAKE) validate-latex
+	@$(MAKE) --no-print-directory validate-latex TARGET="$(TARGET)"
 	@echo ""
-	@if [ -d ".dvc" ]; then \
-		$(MAKE) validate-dvc; \
-	else \
-		echo "== DVC状態 =="; \
-		echo "DVC: 未初期化 (オプション機能)"; \
-	fi
+	@$(MAKE) --no-print-directory validate-dvc || true
+	@echo ""
+	@$(MAKE) --no-print-directory validate-tags || true
 	@echo ""
 	@echo "=== バリデーション完了 ==="
 
 # Git状態確認
 validate-git:
-	@echo "== Git状態確認 =="
-	@if git rev-parse --git-dir >/dev/null 2>&1; then \
-		echo "✓ Gitリポジトリ: 初期化済み"; \
-		uncommitted=$$(git status --porcelain | wc -l); \
-		if [ $$uncommitted -eq 0 ]; then \
-			echo "✓ 作業ディレクトリ: クリーン"; \
-		else \
-			echo "⚠ 作業ディレクトリ: $$uncommitted 個の未コミット変更"; \
-			git status --short | head -5 | sed 's/^/    /'; \
-			if [ $$uncommitted -gt 5 ]; then \
-				echo "    ... 他 $$(($$uncommitted - 5)) 個"; \
-			fi; \
-		fi; \
-		current_branch=$$(git branch --show-current); \
-		echo "✓ 現在のブランチ: $$current_branch"; \
-		tag_count=$$(git tag | wc -l); \
-		echo "✓ タグ数: $$tag_count"; \
-	else \
-		echo "✗ Gitリポジトリが初期化されていません"; \
-		exit 1; \
-	fi
+	@./scripts/validator/validate_git.sh
 
 # LaTeX状態確認
 validate-latex:
-	@echo "== LaTeX状態確認 =="
-	@if [ -f "$(MAIN_TEX)" ]; then \
-		echo "✓ メインファイル: $(MAIN_TEX) 存在"; \
-		if command -v latexmk >/dev/null 2>&1; then \
-			echo "✓ LaTeX環境: latexmk 利用可能"; \
-		else \
-			echo "✗ LaTeX環境: latexmk が見つかりません"; \
-			exit 1; \
-		fi; \
-		if [ "$(ENABLE_LATEXINDENT)" = "true" ] && command -v latexindent >/dev/null 2>&1; then \
-			echo "✓ コードフォーマット: latexindent 利用可能"; \
-		elif [ "$(ENABLE_LATEXINDENT)" = "true" ]; then \
-			echo "⚠ コードフォーマット: latexindent が見つかりません"; \
-		else \
-			echo "- コードフォーマット: 無効"; \
-		fi; \
-		tex_files=$$(find . -name "*.tex" | wc -l); \
-		echo "✓ TeXファイル数: $$tex_files"; \
-	else \
-		echo "✗ メインファイル $(MAIN_TEX) が見つかりません"; \
-		exit 1; \
-	fi
+	@# Invoke the validation script; pass TARGET if provided
+	@./scripts/validator/validate_latex.sh "$(TARGET)"
 
 # DVC状態確認
 validate-dvc:
@@ -362,22 +319,4 @@ validate-dvc:
 
 # タグ重複確認
 validate-tags:
-	@if [ -n "$(TAG)" ]; then \
-		echo "== タグ重複確認 =="; \
-		if git tag | grep -q "^$(TAG)$$"; then \
-			echo "✗ タグ $(TAG) は既に存在します"; \
-			echo "既存のタグ:"; \
-			git tag | grep "$(TAG)" | sed 's/^/  /'; \
-			exit 1; \
-		else \
-			echo "✓ タグ $(TAG) は利用可能です"; \
-		fi; \
-	else \
-		echo "== タグ確認 =="; \
-		tag_count=$$(git tag | wc -l); \
-		echo "現在のタグ数: $$tag_count"; \
-		if [ $$tag_count -gt 0 ]; then \
-			echo "最新のタグ:"; \
-			git tag | tail -5 | sed 's/^/  /'; \
-		fi; \
-	fi
+	@./scripts/validator/validate_tags.sh "$(TAG)"
