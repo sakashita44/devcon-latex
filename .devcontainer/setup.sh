@@ -57,6 +57,9 @@ sudo rm -rf /var/lib/apt/lists/*
 echo "6/6: Git safe directory設定中..."
 git config --global --add safe.directory /workspaces
 
+# scripts/への実行権限の追加
+sudo chmod +x /workspaces/scripts/*
+
 echo "=== DevContainer セットアップ完了 ==="
 echo "作業ディレクトリ: $(pwd)"
 echo "ロケール: $LANG"

@@ -80,7 +80,8 @@
         "latex-workshop.bibtex-format.trailingComma": true,
         "latex-workshop.linting.chktex.enabled": false,
         "latex-workshop.intellisense.package.enabled": true,
-        "latex-workshop.latex.autoClean.run": "onSucceeded",
+        "latex-workshop.latex.autoClean.run": "never",
+        "latex-workshop.latex.clean.subfolder.enabled": true,
         "latex-workshop.latex.clean.fileTypes": [
           "*.aux",
           "*.bbl",
@@ -103,57 +104,48 @@
           "*.fdb_latexmk",
           "*.synctex.gz"
         ],
-        // 日本語フォント設定（BIZ UD明朝使用）
+        // latex-workshopのビルドツールとレシピ設定
         "latex-workshop.latex.tools": [
           {
-            "name": "lualatex",
-            "command": "lualatex",
-            "args": [
-              "-synctex=1",
-              "-interaction=nonstopmode",
-              "-file-line-error",
-              "%DOC%"
-            ]
-          },
-          {
-            "name": "bibtex",
-            "command": "bibtex",
-            "args": [
-              "%DOCFILE%"
-            ]
-          },
-          {
-            "name": "clean",
+            "name": "latexmk",
             "command": "latexmk",
             "args": [
-              "-c"
-            ]
+              "-interaction=nonstopmode",
+              "%DOC%"
+            ],
+            "env": {}
+          },
+          {
+            "name": "latexmk-clean",
+            "command": "latexmk",
+            "args": [
+              "-c",
+              "%DOC%"
+            ],
+            "env": {}
           }
         ],
         "latex-workshop.latex.recipes": [
           {
-            "name": "LuaLaTeX Temporary: lualatex",
+            "name": "latexmk (auto-detect engine)",
             "tools": [
-              "lualatex"
+              "latexmk"
             ]
           },
           {
-            "name": "LuaLaTeX Full: lualatex -> bibtex -> lualatex*2",
+            "name": "latexmk (clean)",
             "tools": [
-              "lualatex",
-              "bibtex",
-              "lualatex",
-              "lualatex"
-            ]
-          },
-          {
-            "name": "lualatex (BIZ UD)",
-            "tools": [
-              "lualatex"
+              "latexmk-clean"
             ]
           }
         ],
-        "latex-workshop.latex.recipe.default": "LuaLaTeX Temporary: lualatex",
+        "latex-workshop.latex.recipe.default": "latexmk (auto-detect engine)",
+        // .latexmkrcファイルの設定を完全に優先
+        "latex-workshop.latex.option.maxPrintLine.enabled": false,
+        "latex-workshop.latex.build.forceRecipeUsage": false,
+        "latex-workshop.latex.search.rootFiles.enabled": true,
+        "latex-workshop.latex.rootFile.doNotPrompt": true,
+        "latex-workshop.latex.rootFile.useSubFile": true,
         // 言語別エディタ設定
         "[tex]": {
           "editor.formatOnSave": true,
