@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+source ./scripts/common.sh
+
 if [ -n "${1:-}" ]; then
   TAG="${1}";
   echo "== タグ重複確認 =="

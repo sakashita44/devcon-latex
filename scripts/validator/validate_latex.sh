@@ -5,10 +5,12 @@ SPEC_ARG="${1:-}"
 
 echo "== LaTeX状態確認 =="
 
+source ./scripts/common.sh
+
 SPEC="${SPEC_ARG:-}"
 if [ -z "$SPEC" ]; then
   if [ -f config ]; then
-    SPEC="$(grep -E '^[[:space:]]*DEFAULT_TARGET[[:space:]]*=' config | head -n1 | cut -d= -f2- | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')"
+    SPEC="$(get_config_value DEFAULT_TARGET config)"
   fi
 fi
 
@@ -16,8 +18,6 @@ if [ -z "$SPEC" ]; then
   echo "ERROR: TARGET が指定されていません。make validate-latex TARGET=path/to/main.tex または config に DEFAULT_TARGET を設定してください" >&2
   exit 1
 fi
-
-source ./scripts/common.sh
 
 TARGET_ABS="$(resolve_path "$SPEC")" || { echo "ERROR: TARGET の解決に失敗しました: $SPEC" >&2; exit 1; }
 check_file_exists "$TARGET_ABS"
