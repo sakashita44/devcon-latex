@@ -1,0 +1,89 @@
+\documentclass[a4paper,12pt]{article}
+
+% pdflatex用の基本パッケージ
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage[english]{babel}
+
+% その他の一般的なパッケージ
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{hyperref}
+\usepackage{geometry}
+\geometry{margin=2.5cm}
+
+% 画像パス設定
+\graphicspath{{../figures/}{../../figures/}}
+
+% タイトル設定
+\title{Sample Document for pdfLaTeX}
+\author{Test Author}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+This is a sample document created for testing pdfLaTeX compilation with LaTeX Workshop's auto-build feature.
+
+\section{Mathematics}
+
+Here is a simple mathematical equation:
+\begin{equation}
+    E = mc^2
+\end{equation}
+
+And some inline math: $\int_{-\infty}^{\infty} e^{-x^2} dx = \sqrt{\pi}$.
+
+\section{Lists}
+
+\subsection{Unordered List}
+\begin{itemize}
+    \item First item
+    \item Second item
+    \item Third item
+\end{itemize}
+
+\subsection{Ordered List}
+\begin{enumerate}
+    \item First step
+    \item Second step
+    \item Third step
+\end{enumerate}
+
+\section{Tables}
+
+\begin{table}[h]
+    \centering
+    \begin{tabular}{|c|c|c|}
+        \hline
+        Column 1 & Column 2 & Column 3 \\
+        \hline
+        A        & B        & C        \\
+        D        & E        & F        \\
+        \hline
+    \end{tabular}
+    \caption{Sample table}
+    \label{tab:sample}
+\end{table}
+
+% 章ファイル読み込み
+\include{chapters/chapter-example}
+
+\section{References}
+
+This document demonstrates the basic functionality of pdfLaTeX compilation. For more information, visit \url{https://www.latex-project.org/}.
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
+
+\section{Conclusion}
+
+This document should compile successfully with pdfLaTeX and can be used to test the auto-build functionality of LaTeX Workshop.
+
+\end{document}
