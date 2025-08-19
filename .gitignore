@@ -3,6 +3,7 @@
 latex.config
 main.pdf
 .vscode/
+tmp/
 *.pdf
 *.tmp
 *.old
