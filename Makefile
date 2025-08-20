@@ -1,29 +1,31 @@
 # LaTeX論文差分計算用Makefile
 # DVC統合バージョン
 
-# 設定ファイルの読み込み
-ifneq (,$(wildcard latex.config))
-    include latex.config
-    export
+# 設定ファイルの読み込み（config を正とする）
+# .config.mk は必須（missing -> make エラー）
+$(shell bash ./scripts/gen_config_mk.sh config .config.mk >/dev/null 2>&1 || true)
+ifneq ($(wildcard .config.mk),)
+include .config.mk
+else
+$(error Missing .config.mk; generate it with: ./scripts/gen_config_mk.sh config .config.mk)
 endif
 
-# デフォルト設定
-MAIN_TEX ?= src/main.tex
+# デフォルト設定（不足キーは .config.mk 側で定義されることを想定）
 IMAGE_EXTENSIONS ?= png jpg jpeg pdf eps svg
 DVC_MANAGED_DIRS ?= figures
 DVC_REMOTE_NAME ?= storage
 DVC_REMOTE_URL ?=
-LATEX_ENGINE ?= lualatex
-BIBTEX_ENGINE ?= bibtex
-ENABLE_LATEXINDENT ?= true
 
 # Make-level TARGET default (can be overridden on command line)
-TARGET ?= $(MAIN_TEX)
+# Default defined by config: DEFAULT_TARGET
+ifndef TARGET
+TARGET := $(DEFAULT_TARGET)
+endif
 
 # suppress "Entering/Leaving directory" messages from make
 MAKEFLAGS += --no-print-directory
 
-.PHONY: diff diff-pdf clean help test-tag build build-safe watch
+.PHONY: diff diff-pdf clean help add-tag build build-safe watch
 .PHONY: dvc-init dvc-status dvc-check-connection dvc-add-images _check-dvc-initialized
 .PHONY: validate validate-git validate-latex validate-dvc validate-tags
 .PHONY: show-image-status dvc-exclude-image dvc-include-image
@@ -35,14 +37,16 @@ help:
 	@echo "利用可能なコマンド:"
 	@echo ""
 	@echo "== 基本機能 =="
-	@echo "  make build      - LaTeX文書をビルド ($(MAIN_TEX))"
+	@echo "  make build      - LaTeX文書をビルド ($(DEFAULT_TARGET))"
 	@echo "  make build-safe - バリデーション付きビルド"
 	@echo "  make watch      - ファイル変更を監視して自動ビルド"
 	@echo "  make clean      - 出力ファイルをクリーンアップ"
 	@echo ""
 	@echo "== 差分生成 =="
-	@echo "  make diff       - 直前の変更を表示"
-	@echo "  make diff-pdf   - 指定されたバージョン間の視覚的差分PDFを生成"
+	@echo "  make diff        - 指定バージョン間の差分一覧 (文書差分のPDF, 画像差分, 拡張子ごとの差分) を作成"
+	@echo "  make diff-pdf    - 指定バージョン間の文書差分を視覚化したPDFのみを生成"
+	@echo "  make diff-images - 指定バージョン間の画像差分のみを生成"
+	@echo "  make diff-ext    - 指定バージョン間の拡張子ごとの差分を生成"
 	@echo ""
 	@echo "== DVC機能 =="
 	@echo "  make dvc-init           - DVCを初期化し既存画像を管理対象に追加"
@@ -65,14 +69,14 @@ help:
 	@echo "  make dvc-fetch          - リモートデータの確認"
 	@echo ""
 	@echo "== バリデーション =="
-	@echo "  make validate           - 全体の状態確認（Git, LaTeX, DVC）"
+	@echo "  make validate           - 全体の状態確認（Git, LaTeX, DVC, タグ）"
 	@echo "  make validate-git       - Git状態確認"
 	@echo "  make validate-latex     - LaTeXファイル確認"
 	@echo "  make validate-dvc       - DVC状態確認"
 	@echo "  make validate-tags      - タグ重複確認"
 	@echo ""
 	@echo "== その他 =="
-	@echo "  make test-tag   - テスト用のタグを作成"
+	@echo "  make add-tag    - 対話式でタグを作成"
 	@echo "  make help       - このヘルプを表示"
 	@echo ""
 	@echo "== ドキュメント =="
@@ -136,15 +140,16 @@ diff-pdf:
 		exit 1; \
 	fi
 	@echo "差分PDF生成中: $(BASE) → $(CHANGED)"
-	@./scripts/generate_diff.sh $(MAIN_TEX) $(BASE) $(CHANGED)
+	@./scripts/generate_diff.sh $(DEFAULT_TARGET) $(BASE) $(CHANGED)
 
-# テスト用タグ作成
-test-tag:
+# 対話式タグ作成
+add-tag:
 	@echo "現在のタグ:"
 	@git tag
 	@echo ""
 	@read -p "新しいタグ名 (例: v2.0): " tag_name; \
 	read -p "タグメッセージ (例: Second version for review): " tag_message; \
+	$(MAKE) --no-print-directory validate-tags TAG="$$tag_name" >/dev/null || { echo "エラー: タグ '$$tag_name' は既に存在するか検証に失敗しました"; exit 1; }; \
 	git tag -a "$$tag_name" -m "$$tag_message"; \
 	echo "タグ '$$tag_name' を作成しました"
 

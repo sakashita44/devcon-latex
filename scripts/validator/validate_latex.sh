@@ -30,12 +30,17 @@ else
   exit 1
 fi
 
-if [ "${ENABLE_LATEXINDENT:-true}" = "true" ] && command -v latexindent >/dev/null 2>&1; then
+formats_found=0
+if command -v latexformat >/dev/null 2>&1; then
+  echo "✓ コードフォーマット: latexformat 利用可能"
+  formats_found=1
+fi
+if command -v latexindent >/dev/null 2>&1; then
   echo "✓ コードフォーマット: latexindent 利用可能"
-elif [ "${ENABLE_LATEXINDENT:-true}" = "true" ]; then
-  echo "⚠ コードフォーマット: latexindent が見つかりません"
-else
-  echo "- コードフォーマット: 無効"
+  formats_found=1
+fi
+if [ $formats_found -eq 0 ]; then
+  echo "⚠ コードフォーマット: latexformat / latexindent 共に見つかりません"
 fi
 
 tex_files=$(find . -name "*.tex" | wc -l)

@@ -11,6 +11,7 @@ tmp/
 # Build outputs
 build/
 log/
+.config.mk
 
 ## Core latex/pdflatex auxiliary files:
 *.aux
