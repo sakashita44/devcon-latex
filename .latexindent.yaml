@@ -1,65 +1,121 @@
-# latexindent設定ファイル
-# 詳細: https://latexindentpl.readthedocs.io/
+# latexindent.pl 設定ファイル
+# https://latexindentpl.readthedocs.io/
+#
 
-# インデント設定
-defaultIndent: "    " # 4スペース
+# ------------------------------------------------------------------
+# 基本設定
+# ------------------------------------------------------------------
+# デフォルトのインデントを4スペースに設定
+defaultIndent: "    "
+# プリアンブル（\documentclass ~ \begin{document}）をインデントする
+indentPreamble: 1
+# 行末の不要な空白を自動で削除する
+removeTrailingWhitespace:
+  beforeProcessing: 1
+# 独立した行にあるコメントを、周囲のコードと同じレベルにインデントする
+indentFirstLineComments: 1
 
-# 環境のインデント設定
-indentRules:
-  document: "0"
-  enumerate: "1"
-  itemize: "1"
-  description: "1"
-  center: "1"
-  flushleft: "1"
-  flushright: "1"
-  quote: "1"
-  quotation: "1"
-  verse: "1"
-  verbatim: "0"
-  equation: "1"
-  align: "1"
-  gather: "1"
-  multline: "1"
-  split: "1"
-  cases: "1"
-  figure: "1"
-  table: "1"
-  tabular: "1"
-  minipage: "1"
-
-# コマンドのインデント設定
-commandCodeBlocks:
-  begin: "1"
-  end: "0"
-  item: "0"
-  title: "0"
-  author: "0"
-  date: "0"
-  section: "0"
-  subsection: "0"
-  subsubsection: "0"
-  paragraph: "0"
-  subparagraph: "0"
-  chapter: "0"
-  part: "0"
-
-# 改行の調整
+# ------------------------------------------------------------------
+# 改行の調整 (バージョン管理との親和性向上)
+# ------------------------------------------------------------------
 modifyLineBreaks:
-  preserveBlankLines: 1
-  condenseMultipleBlankLinesInto: 1
+  # 1行1文にすることで、Gitの差分（diff）を読みやすくする
   oneSentencePerLine:
-    manipulateSentences: 0
+    manipulateSentences: 1
+    sentencesFollow:
+      - "sentence"
+  # 環境（\begin{} ... \end{}）の開始・終了を独立した行にする
   environments:
     BeginStartsOnOwnLine: 1
-    BodyStartsOnOwnLine: 1
     EndStartsOnOwnLine: 1
-    EndFinishesWithLineBreak: 1
-  commands:
-    CommandStartsOnOwnLine: 0
-    CommandNameFinishesWithLineBreak: 0
+  # 2行以上の連続する空行を、1行の空行にまとめる
+  condenseMultipleBlankLinesInto: 1
 
-# 特殊文字のハンドリング
+# ------------------------------------------------------------------
+# インデントの微調整
+# ------------------------------------------------------------------
+# document環境はインデントしない
+indentRules:
+  document: "0"
+
+# item環境のインデントを調整
+indentAfterItems:
+  item: 1
+  itemize: 1
+  enumerate: 1
+
+# 日本語対応：特定のコマンド内で追加のインデントを行わない
+noAdditionalIndent:
+  textbf: 0
+  textit: 0
+  emph: 0
+  underline: 0
+  pbox: 0
+  mbox: 0
+  textgt: 0 # ゴシック体
+  textmc: 0 # 明朝体
+
+# ------------------------------------------------------------------
+# オプション引数の整形
+# ------------------------------------------------------------------
+# \documentclass[...]等のオプション引数をキー=値のペアごとに改行して整形する
+optionalArgumentIndentation:
+  commandNames:
+    - includegraphics
+    - usepackage
+    - documentclass
+    - input
+    - lstinputlisting
+    - href
+  breakAfterComma: 1
+  indentAfterOpenBracket: 1
+
+# ------------------------------------------------------------------
+# 数式・表のアライメント設定
+# ------------------------------------------------------------------
+lookForAlignDelims:
+  align: 1
+  align*: 1
+  alignat: 1
+  array: 1
+  tabular: 1
+  matrix: 1
+  pmatrix: 1
+  bmatrix: 1
+  vmatrix: 1
+  cases: 1
+  split: 1
+
+alignDelims:
+  spacesBeforeAmpersand: 1
+  spacesAfterAmpersand: 1
+  spacesBeforeDoubleBackSlash: 1
+  justification: center
+
+# ------------------------------------------------------------------
+# 置換設定 (リスト整形)
+# ------------------------------------------------------------------
+substitutions:
+  # item間の空行を削除するルール
+  items:
+    s: '(\\item(?:\[.*?\])?\s*(?:\n\s*){2,})\s*(?=\\item)'
+    r: "$1"
+
+# ------------------------------------------------------------------
+# コード折りたたみ支援
+# ------------------------------------------------------------------
+addContinuationIndentation:
+  # このリストにある環境の前後にコメントを自動挿入する
+  environments:
+    figure: 1
+    figure*: 1
+    table: 1
+    table*: 1
+    tikzpicture: 1
+
+# ------------------------------------------------------------------
+# 特殊な環境の定義
+# ------------------------------------------------------------------
 specialBeginEnd:
   displayMath:
     begin: '\\\['
@@ -70,48 +126,9 @@ specialBeginEnd:
     end: '\\\)'
     lookForThis: 1
 
-# 日本語対応設定
-lookForAlignDelims:
-  align: 1
-  alignat: 1
-  array: 1
-  bmatrix: 1
-  cases: 1
-  matrix: 1
-  pmatrix: 1
-  tabular: 1
-  vmatrix: 1
-  Bmatrix: 1
-  Vmatrix: 1
-  longtable: 1
-  supertabular: 1
-  xtabular: 1
-  gather: 1
-  split: 1
-  multline: 1
-
-# 表・数式の詳細な揃え設定
-alignDelims:
-  delims: 1
-  alignDoubleBackSlash: 1
-  spacesBeforeDoubleBackSlash: 1
-  multiColumnGrouping: 0
-  alignRowsWithoutMaxDelims: 1
-  spacesBeforeAmpersand: 1
-  spacesAfterAmpersand: 1
-  justification: left
-
-# 日本語テキスト処理
-noAdditionalIndent:
-  \textbf: 0
-  \textit: 0
-  \emph: 0
-  \underline: 0
-
-# 日本語文書特有の環境
-environments:
-  jfigure: 1
-  jtable: 1
-  jequation: 1# バックアップ設定
+# ------------------------------------------------------------------
+# バックアップ設定
+# ------------------------------------------------------------------
+# 複数世代のバックアップは作成しない
 cycleThroughBackUps: 0
-backupExtension: .bak0
+backupExtension: .bak
