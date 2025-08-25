@@ -9,7 +9,7 @@ tmp/
 *.old
 
 # Build outputs
-build/
+out/
 log/
 .config.mk
 

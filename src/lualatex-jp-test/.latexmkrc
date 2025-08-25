@@ -1,5 +1,5 @@
-# 日本語版用の出力ディレクトリをbuild/lualatex/に設定
-$out_dir = '../../build/lualatex/';
+# 日本語版用の出力ディレクトリをout/lualatex/に設定
+$out_dir = '../../out/lualatex/';
 
 # LuaLaTeX設定
 $pdf_mode = 4;  # LuaLaTeX
