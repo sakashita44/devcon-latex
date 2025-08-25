@@ -16,16 +16,23 @@ DVC_MANAGED_DIRS ?= figures
 DVC_REMOTE_NAME ?= storage
 DVC_REMOTE_URL ?=
 
-# Make-level TARGET default (can be overridden on command line)
-# Default defined by config: DEFAULT_TARGET
+# Make-level default (can be overridden on command line)
 ifndef TARGET
 TARGET := $(DEFAULT_TARGET)
 endif
+ifndef OUT
+OUT := $(DEFAULT_OUT_DIR)
+endif
+
+# Resolve BASE/CHANGED at make parse time using helper script (falls back inside script)
+RESOLVED := $(shell bash ./scripts/diff/resolve_refs.sh '$(or $(BASE),)' '$(or $(CHANGED),)')
+RESOLVED_BASE := $(word 1,$(RESOLVED))
+RESOLVED_CHANGED := $(wordlist 2,2,$(RESOLVED))
 
 # suppress "Entering/Leaving directory" messages from make
 MAKEFLAGS += --no-print-directory
 
-.PHONY: diff diff-pdf clean help add-tag build build-safe watch
+.PHONY: diff diff-pdf diff-images diff-ext clean help add-tag build build-safe watch
 .PHONY: dvc-init dvc-status dvc-check-connection dvc-add-images _check-dvc-initialized
 .PHONY: validate validate-git validate-latex validate-dvc validate-tags
 .PHONY: show-image-status dvc-exclude-image dvc-include-image
@@ -45,7 +52,7 @@ help:
 	@echo "== 差分生成 =="
 	@echo "  make diff        - 指定バージョン間の差分一覧 (文書差分のPDF, 画像差分, 拡張子ごとの差分) を作成"
 	@echo "  make diff-pdf    - 指定バージョン間の文書差分を視覚化したPDFのみを生成"
-	@echo "  make diff-images - 指定バージョン間の画像差分のみを生成"
+	@echo "  make diff-images - 指定バージョン間で変更された画像を出力"
 	@echo "  make diff-ext    - 指定バージョン間の拡張子ごとの差分を生成"
 	@echo ""
 	@echo "== DVC機能 =="
@@ -120,27 +127,26 @@ watch:
 	@echo "Ctrl+C で停止"
 	@./scripts/build/build.sh watch "$(TARGET)"
 
-# Git差分表示
+# 差分生成
 diff:
-	@if [ -n "$(BASE)" ] && [ -n "$(CHANGED)" ]; then \
-		echo "Git差分表示中: $(BASE) → $(CHANGED)"; \
-		git diff $(BASE)..$(CHANGED); \
-	else \
-		echo "デフォルト差分表示中 (HEAD~1..HEAD)..."; \
-		echo "特定のタグ/コミット間の差分を表示するには:"; \
-		echo "  make diff BASE=v1.0.0 CHANGED=v2.0.0"; \
-		git diff HEAD~1..HEAD; \
-	fi
+	@echo "差分生成 (all): TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=all bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
-# 視覚的差分PDF生成
+# 差分PDF生成
 diff-pdf:
-	@if [ -z "$(BASE)" ] || [ -z "$(CHANGED)" ]; then \
-		echo "エラー: BASE と CHANGED パラメータが必要です"; \
-		echo "使用例: make diff-pdf BASE=v1.0.0 CHANGED=test"; \
-		exit 1; \
-	fi
-	@echo "差分PDF生成中: $(BASE) → $(CHANGED)"
-	@./scripts/generate_diff.sh $(DEFAULT_TARGET) $(BASE) $(CHANGED)
+	@echo "差分PDF生成: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=pdf bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+
+# 変更済み画像の出力
+diff-images:
+	@echo "変更済み画像出力: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=images bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+
+# 拡張子差分生成
+diff-ext:
+	@echo "拡張子差分生成: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=ext bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+
 
 # 対話式タグ作成
 add-tag:
