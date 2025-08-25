@@ -197,11 +197,11 @@ dvc-init:
 
 # DVC状態確認
 dvc-status:
-	@./scripts/dvc_validator.sh status "$(DVC_MANAGED_DIRS)"
+	@./scripts/dvc_validate.sh status "$(DVC_MANAGED_DIRS)"
 
 # DVC接続確認
 dvc-check-connection:
-	@./scripts/dvc_validator.sh check-connection "$(DVC_REMOTE_NAME)"
+	@./scripts/dvc_validate.sh check-connection "$(DVC_REMOTE_NAME)"
 
 # DVC画像追加（新規・変更画像の自動検出と追加）
 dvc-add-images:
@@ -320,17 +320,17 @@ validate:
 
 # Git状態確認
 validate-git:
-	@./scripts/validator/validate_git.sh
+	@./scripts/validate/validate_git.sh
 
 # LaTeX状態確認
 validate-latex:
 	@# Invoke the validation script; pass TARGET if provided
-	@./scripts/validator/validate_latex.sh "$(TARGET)"
+	@./scripts/validate/validate_latex.sh "$(TARGET)"
 
 # DVC状態確認
 validate-dvc:
-	@./scripts/dvc_validator.sh validate "$(DVC_MANAGED_DIRS)"
+	@./scripts/dvc_validate.sh validate "$(DVC_MANAGED_DIRS)"
 
 # タグ重複確認
 validate-tags:
-	@./scripts/validator/validate_tags.sh "$(TAG)"
+	@./scripts/validate/validate_tags.sh "$(TAG)"
