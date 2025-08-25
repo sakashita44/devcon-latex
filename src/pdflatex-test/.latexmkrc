@@ -1,5 +1,5 @@
-# pdflatex版用の出力ディレクトリをbuild/pdflatex/に設定
-$out_dir = '../../build/pdflatex';
+# pdflatex版用の出力ディレクトリをout/pdflatex/に設定
+$out_dir = '../../out/pdflatex';
 
 # pdfLaTeX設定
 $pdf_mode = 1;  # pdfLaTeX

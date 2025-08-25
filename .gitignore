@@ -1,6 +1,5 @@
 # Local environment variables for Dev Container
 /.devcontainer/_base/.env
-latex.config
 main.pdf
 .vscode/
 tmp/
@@ -9,7 +8,7 @@ tmp/
 *.old
 
 # Build outputs
-build/
+out/
 log/
 .config.mk
 

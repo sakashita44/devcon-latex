@@ -1,5 +1,5 @@
-# uplatex版用の出力ディレクトリをbuild/uplatex/に設定
-$out_dir = '../../build/uplatex';
+# uplatex版用の出力ディレクトリをout/uplatex/に設定
+$out_dir = '../../out/uplatex';
 
 # upLaTeX設定
 $latex = 'uplatex -interaction=nonstopmode %O %S';

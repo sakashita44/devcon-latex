@@ -15,7 +15,7 @@ LATEXMKRC_EXPLORATION_RANGE=3
 
 ### 差分生成関係 ###
 # デフォルトのmake diffの出力ディレクトリ(make diffでOUT_DIRが指定されない場合に使用)
-DEFAULT_OUT_DIR=build/
+DEFAULT_OUT_DIR=out/
 # Gitの差分を出力する拡張子リスト
 GIT_DIFF_EXTENSIONS=tex sty cls bib bst
 # 画像差分を出力する拡張子リスト

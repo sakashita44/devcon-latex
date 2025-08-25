@@ -1,5 +1,5 @@
-# 出力ディレクトリをbuild/に設定
-$out_dir = '../build';
+# 出力ディレクトリをout/に設定
+$out_dir = '../out';
 
 # LuaLaTeX設定
 $pdf_mode = 4;  # LuaLaTeX
