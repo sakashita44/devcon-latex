@@ -14,7 +14,21 @@ set -euo pipefail
 #   - 引数が両方与えられた場合はそれらが存在するか検証し、存在しなければ exit 2
 #
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-REPO_ROOT=$(cd "$SCRIPT_DIR/../../" && pwd)
+
+# Git リポジトリルートを動的に検出
+find_git_root() {
+    local current_dir="${1:-$(pwd)}"
+    while [ "$current_dir" != "/" ]; do
+        if [ -d "$current_dir/.git" ]; then
+            echo "$current_dir"
+            return 0
+        fi
+        current_dir=$(dirname "$current_dir")
+    done
+    return 1
+}
+
+REPO_ROOT=$(find_git_root) || { echo "ERROR: not in git repository" >&2; exit 1; }
 
 BASE_ARG=${1:-}
 CHANGED_ARG=${2:-}
