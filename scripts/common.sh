@@ -174,3 +174,136 @@ is_dvc_managed() {
     local file="$1"
     [ -f "${file}.dvc" ]
 }
+
+# === 統一config読み込み機能 ===
+
+# CONFIG_LOADED フラグ（重複読み込み防止）
+CONFIG_LOADED=${CONFIG_LOADED:-false}
+
+# load_config_from_path: 指定されたconfigファイルを読み込み
+# 引数: config_path
+load_config_from_path() {
+    local config_path="$1"
+
+    if [ ! -f "$config_path" ]; then
+        print_error "load_config_from_path: configファイルが見つかりません: $config_path"
+        return 1
+    fi
+
+    # 安全なconfig読み込み（コメントと空行をスキップ）
+    while IFS= read -r line || [ -n "$line" ]; do
+        # コメント行と空行をスキップ
+        case "$line" in
+            ''|\#*) continue ;;
+        esac
+
+        # KEY=VALUE 形式の行のみ処理
+        if echo "$line" | grep -q '=' >/dev/null 2>&1; then
+            local key="${line%%=*}"
+            local value="${line#*=}"
+
+            # bash配列形式の検出と処理
+            if [[ "$value" =~ ^\(.*\)$ ]]; then
+                # 配列形式: KEY=("val1" "val2" "val3")
+                eval "declare -ga $key=$value"
+            else
+                # スカラー値またはスペース区切り文字列
+                if [ -n "$value" ] && [[ "$value" =~ [[:space:]] ]]; then
+                    # スペース区切り値を配列に変換
+                    eval "declare -ga $key=($value)"
+                else
+                    # スカラー値
+                    eval "declare -g $key=\"$value\""
+                fi
+            fi
+        fi
+    done < "$config_path"
+
+    return 0
+}
+
+# load_config: 統一的なconfig読み込み
+# 引数: (optional: config_path)
+# 引数が指定されない場合はcommon.shからの相対パス（../config）を使用
+load_config() {
+    if [ "$CONFIG_LOADED" = "true" ]; then
+        return 0
+    fi
+
+    local config_path="${1:-}"
+
+    # configパスが指定されていない場合はcommon.shからの相対パス
+    if [ -z "$config_path" ]; then
+        local common_dir
+        common_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+        config_path="$common_dir/../config"
+    fi
+
+    # configファイルを読み込み
+    if ! load_config_from_path "$config_path"; then
+        return 1
+    fi
+
+    # 配列変数の未定義対策（set -u 対応）
+    local array_keys=(
+        "LATEXMK_OPTIONS"
+        "LATEXPAND_OPTIONS"
+        "LATEXDIFF_OPTIONS"
+        "GIT_DIFF_EXTENSIONS"
+        "IMAGE_DIFF_EXTENSIONS"
+        "IMAGE_EXTENSIONS"
+        "DVC_MANAGED_DIRS"
+    )
+
+    for key in "${array_keys[@]}"; do
+        if ! declare -p "$key" >/dev/null 2>&1; then
+            eval "declare -ga $key=()"
+        fi
+    done
+
+    CONFIG_LOADED=true
+    return 0
+}
+
+# get_config_array: 配列設定値を取得
+# 引数: array_name
+# 出力: 配列の各要素を一行ずつ標準出力へ
+get_config_array() {
+    local array_name="$1"
+    if [ -z "$array_name" ]; then
+        print_error "get_config_array: 配列名が必要です"
+        return 1
+    fi
+
+    if ! load_config; then
+        return 1
+    fi
+
+    # 配列が定義されているかチェック
+    if declare -p "$array_name" >/dev/null 2>&1; then
+        eval "local -n arr_ref=$array_name"
+        printf '%s\n' "${arr_ref[@]}"
+    fi
+    return 0
+}
+
+# get_config_scalar: スカラー設定値を取得
+# 引数: key_name
+# 出力: 値を標準出力へ
+get_config_scalar() {
+    local key_name="$1"
+    if [ -z "$key_name" ]; then
+        print_error "get_config_scalar: キー名が必要です"
+        return 1
+    fi
+
+    if ! load_config; then
+        return 1
+    fi
+
+    # 変数が定義されているかチェック
+    if declare -p "$key_name" >/dev/null 2>&1; then
+        eval "printf '%s' \"\$$key_name\""
+    fi
+    return 0
+}
