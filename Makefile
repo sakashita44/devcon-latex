@@ -24,6 +24,15 @@ ifndef OUT
 OUT := $(DEFAULT_OUT_DIR)
 endif
 
+# TARGET_BASE/TARGET_CHANGED の分解ロジック
+# TARGET_BASE が未定義なら TARGET を使用、TARGET も未定義なら DEFAULT_TARGET を使用
+ifndef TARGET_BASE
+TARGET_BASE := $(TARGET)
+endif
+ifndef TARGET_CHANGED
+TARGET_CHANGED := $(TARGET)
+endif
+
 # Resolve BASE/CHANGED at make parse time using helper script (falls back inside script)
 RESOLVED := $(shell bash ./scripts/diff/resolve_refs.sh '$(or $(BASE),)' '$(or $(CHANGED),)')
 RESOLVED_BASE := $(word 1,$(RESOLVED))
@@ -129,23 +138,23 @@ watch:
 
 # 差分生成
 diff:
-	@echo "差分生成 (all): TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
-	@MODE=all bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+	@echo "差分生成 (all): TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=all bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 差分PDF生成
 diff-pdf:
-	@echo "差分PDF生成: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
-	@MODE=pdf bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+	@echo "差分PDF生成: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=pdf bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 変更済み画像の出力
 diff-images:
-	@echo "変更済み画像出力: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
-	@MODE=images bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+	@echo "変更済み画像出力: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=images bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 拡張子差分生成
 diff-ext:
-	@echo "拡張子差分生成: TARGET=$(TARGET) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
-	@MODE=ext bash ./scripts/diff/main.sh "$(TARGET)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
+	@echo "拡張子差分生成: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
+	@MODE=ext bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 
 # 対話式タグ作成

@@ -1,24 +1,25 @@
 #!/usr/bin/env bash
-# scripts/diff/main.sh
-# 空の差分メインスクリプト (issue8 Phase 3 のプレースホルダ)
+set -euo pipefail
+
+#
+# 概要: 差分生成ワークフローのオーケストレーター
+#       指定された2つのGitリビジョン間の文書差分、画像差分、Git差分を自動生成する
+#
 # 引数:
-#   $1 - TARGET (tex file path). デフォルトは config の DEFAULT_TARGET
-#   $2 - BASE (git ref). デフォルトは直近の tag
-#   $3 - CHANGED (git ref). デフォルトは 1つ前の tag
-#   $4 - OUT (出力ディレクトリ). デフォルトは config の DEFAULT_OUT_DIR
+#   $1 TARGET_BASE (BASE側で使うエントリ .tex のリポジトリ相対パス)
+#   $2 TARGET_CHANGED (CHANGED側で使うエントリ .tex のリポジトリ相対パス)
+#   $3 BASE (git ref)
+#   $4 CHANGED (git ref)
+#   $5 OUT (出力ディレクトリ、省略可、デフォルト=DEFAULT_OUT_DIR)
+#
 
-set -eu
-
+# === 1. 前置チェック ===
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../../" && pwd)
 
-TARGET_ARG=${1:-}
-BASE_ARG=${2:-}
-CHANGED_ARG=${3:-}
-OUT_ARG=${4:-}
-
-# load config if exists (parse KEY=VALUE to allow unquoted space-separated lists)
+# config読み込み
 if [ -f "$REPO_ROOT/config" ]; then
+    # source の代わりに安全な読み込みを行う
     while IFS= read -r line || [ -n "$line" ]; do
         # skip comments and empty lines
         case "$line" in
@@ -35,61 +36,245 @@ if [ -f "$REPO_ROOT/config" ]; then
     done < "$REPO_ROOT/config"
 fi
 
-# Resolve defaults
-if [ -z "$TARGET_ARG" ]; then
-    TARGET_ARG=${DEFAULT_TARGET:-src/main.tex}
-fi
+source "$REPO_ROOT/scripts/common.sh"
 
-if [ -z "$OUT_ARG" ]; then
-    OUT_ARG=${DEFAULT_OUT_DIR:-build/}
-fi
+# === ユーティリティ関数 ===
+update_metadata_phase() {
+    local phase=$1
+    local status=$2
+    local timestamp=$3
+    local error_message=${4:-}
 
-# Determine git tags (most recent first)
-get_latest_tags() {
-    # list tags sorted by version/rev-date; fallback to HEAD if no tags
-    if git -C "$REPO_ROOT" rev-parse --verify --quiet "refs/tags" >/dev/null 2>&1; then
-        tags=($(git -C "$REPO_ROOT" for-each-ref --sort=-creatordate --format '%(refname:strip=2)' refs/tags))
-    else
-        tags=()
+    echo "Updating metadata: $phase -> $status at $timestamp" >&2
+    if [ -n "$error_message" ]; then
+        echo "  Error: $error_message" >&2
     fi
-
-    echo "${tags[@]:-}"
+    # TODO: 実際のJSONファイル更新（jqまたは手動での文字列置換）
 }
 
-if [ -z "$BASE_ARG" ] || [ -z "$CHANGED_ARG" ]; then
-    tags_str=$(get_latest_tags)
-    # convert to array
-    IFS=$'\n' read -r -a tags_arr <<<"$tags_str"
-    if [ ${#tags_arr[@]} -ge 2 ]; then
-        # latest = tags_arr[0], previous = tags_arr[1]
-        :
-    fi
-    if [ -z "$BASE_ARG" ]; then
-        if [ ${#tags_arr[@]} -ge 1 ]; then
-            BASE_ARG=${tags_arr[1]:-}
-        else
-            BASE_ARG="HEAD~1"
+update_metadata_status() {
+    local status=$1
+    echo "Updating overall status: $status" >&2
+    # TODO: 実際のJSONファイル更新
+}
+
+# 必須ツールの存在チェック
+check_required_tools() {
+    local tools=("git" "latexmk" "latexdiff" "latexpand" "grep" "awk" "sed" "find" "sort" "xargs")
+    local missing_tools=()
+
+    for tool in "${tools[@]}"; do
+        if ! command -v "$tool" >/dev/null 2>&1; then
+            missing_tools+=("$tool")
         fi
+    done
+
+    # sha1sum または openssl の確認
+    if ! command -v "sha1sum" >/dev/null 2>&1 && ! command -v "openssl" >/dev/null 2>&1; then
+        missing_tools+=("sha1sum or openssl")
     fi
-    if [ -z "$CHANGED_ARG" ]; then
-        if [ ${#tags_arr[@]} -ge 1 ]; then
-            CHANGED_ARG=${tags_arr[0]:-}
-        else
-            CHANGED_ARG="HEAD"
-        fi
+
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        echo "Error: Missing required tools: ${missing_tools[*]}" >&2
+        exit 3
     fi
+}
+
+check_required_tools
+
+# 配列の未定義対策（set -u 下で安全に使用するため）
+# configからスペース区切りの文字列を配列に変換
+if [ -n "${LATEXMK_OPTIONS:-}" ]; then
+    read -ra LATEXMK_OPTIONS <<< "$LATEXMK_OPTIONS"
+else
+    declare -a LATEXMK_OPTIONS=()
 fi
 
-# Print resolved values and exit (placeholder)
-cat <<EOF
-[diff main placeholder]
-TARGET: $TARGET_ARG
-BASE:   $BASE_ARG
-CHANGED:$CHANGED_ARG
-OUT:    $OUT_ARG
-Repository root: $REPO_ROOT
+if [ -n "${LATEXPAND_OPTIONS:-}" ]; then
+    read -ra LATEXPAND_OPTIONS <<< "$LATEXPAND_OPTIONS"
+else
+    declare -a LATEXPAND_OPTIONS=()
+fi
+
+if [ -n "${LATEXDIFF_OPTIONS:-}" ]; then
+    read -ra LATEXDIFF_OPTIONS <<< "$LATEXDIFF_OPTIONS"
+else
+    declare -a LATEXDIFF_OPTIONS=()
+fi
+
+if [ -n "${GIT_DIFF_EXTENSIONS:-}" ]; then
+    read -ra GIT_DIFF_EXTENSIONS <<< "$GIT_DIFF_EXTENSIONS"
+else
+    declare -a GIT_DIFF_EXTENSIONS=()
+fi
+
+if [ -n "${IMAGE_DIFF_EXTENSIONS:-}" ]; then
+    read -ra IMAGE_DIFF_EXTENSIONS <<< "$IMAGE_DIFF_EXTENSIONS"
+else
+    declare -a IMAGE_DIFF_EXTENSIONS=()
+fi
+
+# === 2. 引数受け取りと解決 ===
+TARGET_BASE_ARG=${1:-}
+TARGET_CHANGED_ARG=${2:-}
+BASE_ARG=${3:-}
+CHANGED_ARG=${4:-}
+OUT_ARG=${5:-}
+
+# 引数チェック
+if [ -z "$TARGET_BASE_ARG" ] || [ -z "$TARGET_CHANGED_ARG" ] || [ -z "$BASE_ARG" ] || [ -z "$CHANGED_ARG" ]; then
+    echo "Error: TARGET_BASE, TARGET_CHANGED, BASE, and CHANGED arguments are required" >&2
+    echo "Usage: $0 <TARGET_BASE> <TARGET_CHANGED> <BASE> <CHANGED> [OUT]" >&2
+    exit 2
+fi
+
+# ローカル変数に代入
+TARGET_BASE=$TARGET_BASE_ARG
+TARGET_CHANGED=$TARGET_CHANGED_ARG
+OUT=${OUT_ARG:-${DEFAULT_OUT_DIR}}
+
+# resolve_refs.sh で BASE/CHANGED を検証・解決
+RESOLVED_REFS=$(bash "$SCRIPT_DIR/resolve_refs.sh" "$BASE_ARG" "$CHANGED_ARG")
+BASE=$(echo "$RESOLVED_REFS" | cut -d' ' -f1)
+CHANGED=$(echo "$RESOLVED_REFS" | cut -d' ' -f2)
+
+# OUT を resolve_path で絶対化
+OUT_ABS=$(resolve_path "$OUT")
+
+# === 3. DIFF_OUT_DIR の組み立て ===
+DIFF_OUT_DIR="${OUT_ABS%/}/diff_${BASE}_to_${CHANGED}/"
+
+# 既存ディレクトリの削除（安全確認後）
+if [ -d "$DIFF_OUT_DIR" ]; then
+    # 安全確認: 空や"/"は禁止
+    if [ "$DIFF_OUT_DIR" = "/" ] || [ -z "$DIFF_OUT_DIR" ]; then
+        echo "Error: Invalid DIFF_OUT_DIR: $DIFF_OUT_DIR" >&2
+        exit 1
+    fi
+    rm -rf "$DIFF_OUT_DIR"
+fi
+
+mkdir -p "$DIFF_OUT_DIR"
+
+# === 4. ロックの確立 ===
+LOCKDIR="$DIFF_OUT_DIR/.lockdir"
+if ! mkdir "$LOCKDIR" 2>/dev/null; then
+    echo "Error: Failed to acquire lock (concurrent run?)" >&2
+    exit 4
+fi
+
+# trap で終了時にロック解除・TMP削除を保証
+cleanup() {
+    local exit_code=$?
+    if [ -d "$LOCKDIR" ]; then
+        rmdir "$LOCKDIR" 2>/dev/null || true
+    fi
+    # 正常終了時のみ TMP_DIR を削除
+    if [ $exit_code -eq 0 ] && [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then
+        rm -rf "$TMP_DIR"
+    fi
+}
+trap cleanup EXIT
+
+# === 5. TMP_DIR 作成 ===
+TMP_DIR="$DIFF_OUT_DIR/tmp/"
+mkdir -p "$TMP_DIR"
+
+# === 6. metadata.json, logs 初期化 ===
+mkdir -p "$DIFF_OUT_DIR/logs"
+
+# metadata.json の初期化
+cat > "$DIFF_OUT_DIR/metadata.json" <<EOF
+{
+  "created_at": "$(date -Iseconds)",
+  "base": "$BASE",
+  "changed": "$CHANGED",
+  "target_base": "$TARGET_BASE",
+  "target_changed": "$TARGET_CHANGED",
+  "out_dir": "$OUT_ABS",
+  "tmp_dir": "$TMP_DIR",
+  "status": "running",
+  "phases": {
+    "restore": {"status": "pending"},
+    "pdf": {"status": "pending"},
+    "images": {"status": "pending"},
+    "git": {"status": "pending"}
+  },
+  "notes": [],
+  "tools": {
+    "git": true,
+    "latexmk": true,
+    "latexdiff": true,
+    "latexpand": true,
+    "sha1sum": $(command -v "sha1sum" >/dev/null 2>&1 && echo true || echo false),
+    "openssl": $(command -v "openssl" >/dev/null 2>&1 && echo true || echo false),
+    "dvc": $(command -v "dvc" >/dev/null 2>&1 && echo true || echo false),
+    "git_lfs": $(command -v "git" >/dev/null 2>&1 && git lfs version >/dev/null 2>&1 && echo true || echo false)
+  }
+}
 EOF
 
-# TODO: 実実装はここに追加
+# === 7. リビジョン復元 ===
+echo "=== Restoring revisions ==="
+update_metadata_phase "restore" "running" "$(date -Iseconds)"
+
+if ! RESTORE_OUTPUT=$(bash "$SCRIPT_DIR/restore_pair.sh" "$BASE" "$CHANGED" "$TMP_DIR" 2>"$DIFF_OUT_DIR/logs/restore.log"); then
+    update_metadata_phase "restore" "fail" "" "restore failed"
+    update_metadata_status "error"
+    exit 5
+fi
+
+BASE_REPO_PATH=$(echo "$RESTORE_OUTPUT" | head -n1)
+CHANGED_REPO_PATH=$(echo "$RESTORE_OUTPUT" | tail -n1)
+
+update_metadata_phase "restore" "ok" "$(date -Iseconds)"
+
+# === 8. TARGET系の存在検証（即時） ===
+echo "=== Verifying target files ==="
+if [ ! -f "$BASE_REPO_PATH/$TARGET_BASE" ] || [ ! -f "$CHANGED_REPO_PATH/$TARGET_CHANGED" ]; then
+    update_metadata_phase "pdf" "fail" "" "target-not-found"
+    update_metadata_status "error"
+    exit 2
+fi
+
+# === 9. 差分フェーズの逐次実行 ===
+OVERALL_STATUS="ok"
+
+# PDF差分
+echo "=== Generating PDF diff ==="
+update_metadata_phase "pdf" "running" "$(date -Iseconds)"
+if bash "$SCRIPT_DIR/gen_diff_pdf.sh" "$TARGET_BASE" "$TARGET_CHANGED" "$BASE_REPO_PATH" "$CHANGED_REPO_PATH" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/pdf.log"; then
+    update_metadata_phase "pdf" "ok" "$(date -Iseconds)"
+else
+    update_metadata_phase "pdf" "fail" "$(date -Iseconds)" "pdf generation failed"
+    OVERALL_STATUS="partial-fail"
+fi
+
+# 画像差分
+echo "=== Generating image diff ==="
+update_metadata_phase "images" "running" "$(date -Iseconds)"
+if bash "$SCRIPT_DIR/gen_diff_images.sh" "$TARGET_BASE" "$TARGET_CHANGED" "$BASE_REPO_PATH" "$CHANGED_REPO_PATH" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/images.log"; then
+    update_metadata_phase "images" "ok" "$(date -Iseconds)"
+else
+    update_metadata_phase "images" "fail" "$(date -Iseconds)" "image diff failed"
+    OVERALL_STATUS="partial-fail"
+fi
+
+# Git差分
+echo "=== Generating git diff ==="
+update_metadata_phase "git" "running" "$(date -Iseconds)"
+if bash "$SCRIPT_DIR/gen_diff_git.sh" "$BASE" "$CHANGED" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/git.log"; then
+    update_metadata_phase "git" "ok" "$(date -Iseconds)"
+else
+    update_metadata_phase "git" "fail" "$(date -Iseconds)" "git diff failed"
+    OVERALL_STATUS="partial-fail"
+fi
+
+# === 10. 収束処理 ===
+update_metadata_status "$OVERALL_STATUS"
+
+echo "=== Diff generation completed ==="
+echo "Status: $OVERALL_STATUS"
+echo "Output directory: $DIFF_OUT_DIR"
 
 exit 0
