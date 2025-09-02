@@ -8,16 +8,8 @@ set -euo pipefail
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "$script_dir/../common.sh"
 
-# try to read repo config if present (do not source to avoid executing tokens)
-repo_root="$(cd "$script_dir/../.." && pwd)"
-config_file="$repo_root/config"
-# populate config-backed variables (with safe defaults via common.get_config_value)
-DEFAULT_TARGET="$(get_config_value DEFAULT_TARGET "$config_file" 2>/dev/null || true)"
-LATEXMK_OPTIONS="$(get_config_value LATEXMK_OPTIONS "$config_file" 2>/dev/null || true)"
-LATEXMKRC_EXPLORATION_RANGE="$(get_config_value LATEXMKRC_EXPLORATION_RANGE "$config_file" 2>/dev/null || true)"
-LOG_DIR="$(get_config_value LOG_DIR "$config_file" 2>/dev/null || true)"
-LOG_CAPTURE_DEFAULT="$(get_config_value LOG_CAPTURE_DEFAULT "$config_file" 2>/dev/null || true)"
-LOG_TIMESTAMP_FORMAT="$(get_config_value LOG_TIMESTAMP_FORMAT "$config_file" 2>/dev/null || true)"
+# config読み込み
+load_config
 
 mode="${1:-build}"
 TARGET_IN="${2:-}"
@@ -32,8 +24,7 @@ if [ -z "$TARGET_IN" ]; then
     fi
 fi
 
-# configuration defaults
-LATEXMK_OPTIONS="${LATEXMK_OPTIONS:-}"
+# configuration defaults (配列は既にload_configで初期化済み)
 LATEXMKRC_EXPLORATION_RANGE="${LATEXMKRC_EXPLORATION_RANGE:-3}"
 LOG_DIR="${LOG_DIR:-log}"
 LOG_CAPTURE_DEFAULT="${LOG_CAPTURE_DEFAULT:-0}"
@@ -107,7 +98,7 @@ esac
 target_base="$(basename "$TARGET")"
 # prepare command string
 # e.g. latexmk -cd /workspaces/src/main.tex -r /workspaces/src/.latexmkrc
-cmd_str="latexmk -cd '$TARGET' -r '$found_latexmkrc' $LATEXMK_OPTIONS $extra"
+cmd_str="latexmk -cd '$TARGET' -r '$found_latexmkrc' ${LATEXMK_OPTIONS[*]} $extra"
 
 # run command and capture exit code; avoid set -e causing immediate exit
 start_time_human="$(date -u +%Y-%m-%dT%H:%M:%SZ)"

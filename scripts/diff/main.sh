@@ -17,26 +17,9 @@ set -euo pipefail
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 REPO_ROOT=$(cd "$SCRIPT_DIR/../../" && pwd)
 
-# config読み込み
-if [ -f "$REPO_ROOT/config" ]; then
-    # source の代わりに安全な読み込みを行う
-    while IFS= read -r line || [ -n "$line" ]; do
-        # skip comments and empty lines
-        case "$line" in
-            ''|\#*) continue ;;
-        esac
-        if echo "$line" | grep -q '=' >/dev/null 2>&1; then
-            key=${line%%=*}
-            value=${line#*=}
-            # trim possible leading/trailing spaces
-            key=$(echo "$key" | sed -e 's/^[ \t]*//' -e 's/[ \t]*$$//')
-            value=$(echo "$value" | sed -e 's/^[ \t]*//' -e 's/[ \t]*$$//')
-            export "$key"="$value"
-        fi
-    done < "$REPO_ROOT/config"
-fi
-
-source "$REPO_ROOT/scripts/common.sh"
+# common.shとconfig読み込み
+source "$SCRIPT_DIR/../common.sh"
+load_config
 
 # === ユーティリティ関数 ===
 update_metadata_phase() {
@@ -81,38 +64,6 @@ check_required_tools() {
 }
 
 check_required_tools
-
-# 配列の未定義対策（set -u 下で安全に使用するため）
-# configからスペース区切りの文字列を配列に変換
-if [ -n "${LATEXMK_OPTIONS:-}" ]; then
-    read -ra LATEXMK_OPTIONS <<< "$LATEXMK_OPTIONS"
-else
-    declare -a LATEXMK_OPTIONS=()
-fi
-
-if [ -n "${LATEXPAND_OPTIONS:-}" ]; then
-    read -ra LATEXPAND_OPTIONS <<< "$LATEXPAND_OPTIONS"
-else
-    declare -a LATEXPAND_OPTIONS=()
-fi
-
-if [ -n "${LATEXDIFF_OPTIONS:-}" ]; then
-    read -ra LATEXDIFF_OPTIONS <<< "$LATEXDIFF_OPTIONS"
-else
-    declare -a LATEXDIFF_OPTIONS=()
-fi
-
-if [ -n "${GIT_DIFF_EXTENSIONS:-}" ]; then
-    read -ra GIT_DIFF_EXTENSIONS <<< "$GIT_DIFF_EXTENSIONS"
-else
-    declare -a GIT_DIFF_EXTENSIONS=()
-fi
-
-if [ -n "${IMAGE_DIFF_EXTENSIONS:-}" ]; then
-    read -ra IMAGE_DIFF_EXTENSIONS <<< "$IMAGE_DIFF_EXTENSIONS"
-else
-    declare -a IMAGE_DIFF_EXTENSIONS=()
-fi
 
 # === 2. 引数受け取りと解決 ===
 TARGET_BASE_ARG=${1:-}
