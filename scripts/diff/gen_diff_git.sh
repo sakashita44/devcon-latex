@@ -14,6 +14,11 @@ set -euo pipefail
 #   - GIT_DIFF_EXTENSIONS (配列)
 #
 
+# common.shとconfig読み込み
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../common.sh"
+load_config
+
 # === 引数チェック ===
 if [ "$#" -ne 3 ]; then
     echo "Usage: $0 <BASE_REF> <CHANGED_REF> <DIFF_OUT_DIR>" >&2

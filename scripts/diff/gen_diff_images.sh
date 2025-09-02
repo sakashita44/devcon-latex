@@ -16,6 +16,11 @@ set -euo pipefail
 #   - IMAGE_DIFF_EXTENSIONS (配列)
 #
 
+# common.shとconfig読み込み
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/../common.sh"
+load_config
+
 # === 引数チェック ===
 if [ "$#" -ne 5 ]; then
     echo "Usage: $0 <TARGET_BASE> <TARGET_CHANGED> <BASE_REPO_PATH> <CHANGED_REPO_PATH> <DIFF_OUT_DIR>" >&2
