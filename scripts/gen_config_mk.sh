@@ -3,7 +3,7 @@ set -euo pipefail
 
 # gen_config_mk.sh
 # Usage: ./scripts/gen_config_mk.sh <config_path> <out_path>
-# Reads keys from the config file using scripts/common.sh::get_config_value
+# Reads keys from the config file using common.sh config loading
 # and writes a Makefile fragment to <out_path>.
 
 if [ $# -ne 2 ]; then
@@ -19,25 +19,32 @@ if [ ! -f "$CONFIG_PATH" ]; then
   exit 3
 fi
 
-# Source common utilities to use get_config_value
-# common.sh may print errors; allow it
-source ./scripts/common.sh
+# Source common utilities and load config
+SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+source "$SCRIPT_DIR/common.sh"
+load_config_from_path "$CONFIG_PATH"
 
 # Keys to extract (based on config.example)
-KEYS=(
+SCALAR_KEYS=(
   DEFAULT_TARGET
   DEFAULT_OUT_DIR
-  LATEXMK_OPTIONS
   LATEXMKRC_EXPLORATION_RANGE
-  IMAGE_EXTENSIONS
-  IMAGE_DIFF_EXTENSIONS
-  GIT_DIFF_EXTENSIONS
-  DVC_MANAGED_DIRS
   DVC_REMOTE_NAME
   DVC_REMOTE_URL
   LOG_DIR
   LOG_CAPTURE_DEFAULT
   LOG_TIMESTAMP_FORMAT
+)
+
+# Array keys (will be converted to space-separated strings for Make)
+ARRAY_KEYS=(
+  LATEXMK_OPTIONS
+  LATEXPAND_OPTIONS
+  LATEXDIFF_OPTIONS
+  IMAGE_EXTENSIONS
+  IMAGE_DIFF_EXTENSIONS
+  GIT_DIFF_EXTENSIONS
+  DVC_MANAGED_DIRS
 )
 
 # Temporary output
@@ -51,20 +58,30 @@ escape_for_make() {
   printf '%s' "$v"
 }
 
-for k in "${KEYS[@]}"; do
-  val=$(get_config_value "$k" "$CONFIG_PATH") || true
-  if [ -n "$val" ]; then
-    # trim (leading/trailing spaces)
-    val_trimmed=$(printf '%s' "$val" | sed -e 's/^ *//' -e 's/ *$//')
-    # fail if contains newline (use bash-safe check)
-    if [[ "$val_trimmed" == *$'\n'* ]]; then
-      echo "Error: config value for $k contains newline; unsupported" >&2
-      rm -f "$tmpfile"
-      exit 4
+# Process scalar keys
+for k in "${SCALAR_KEYS[@]}"; do
+  if declare -p "$k" >/dev/null 2>&1; then
+    eval "val=\$$k"
+    if [ -n "$val" ]; then
+      esc=$(escape_for_make "$val")
+      printf '%s := %s\n' "$k" "$esc" >> "$tmpfile"
+      written=$((written+1))
     fi
-    esc=$(escape_for_make "$val_trimmed")
-    printf '%s := %s\n' "$k" "$esc" >> "$tmpfile"
-    written=$((written+1))
+  fi
+done
+
+# Process array keys (convert to space-separated strings)
+for k in "${ARRAY_KEYS[@]}"; do
+  if declare -p "$k" >/dev/null 2>&1; then
+    eval "declare -n arr_ref=$k"
+    if [ ${#arr_ref[@]} -gt 0 ]; then
+      # Join array elements with spaces
+      val=$(printf '%s ' "${arr_ref[@]}")
+      val="${val% }" # Remove trailing space
+      esc=$(escape_for_make "$val")
+      printf '%s := %s\n' "$k" "$esc" >> "$tmpfile"
+      written=$((written+1))
+    fi
   fi
 done
 
