@@ -32,13 +32,37 @@ update_metadata_phase() {
     if [ -n "$error_message" ]; then
         echo "  Error: $error_message" >&2
     fi
-    # TODO: 実際のJSONファイル更新（jqまたは手動での文字列置換）
+    
+    # JSONファイル更新
+    if [ -f "$DIFF_OUT_DIR/metadata.json" ]; then
+        if command -v jq >/dev/null 2>&1; then
+            # jqを使用してJSONを更新
+            local temp_file=$(mktemp)
+            if [ -n "$error_message" ]; then
+                jq --arg phase "$phase" --arg status "$status" --arg timestamp "$timestamp" --arg error "$error_message" \
+                   '.phases[$phase] = {"status": $status, "timestamp": $timestamp, "error": $error}' \
+                   "$DIFF_OUT_DIR/metadata.json" > "$temp_file" && mv "$temp_file" "$DIFF_OUT_DIR/metadata.json"
+            else
+                jq --arg phase "$phase" --arg status "$status" --arg timestamp "$timestamp" \
+                   '.phases[$phase] = {"status": $status, "timestamp": $timestamp}' \
+                   "$DIFF_OUT_DIR/metadata.json" > "$temp_file" && mv "$temp_file" "$DIFF_OUT_DIR/metadata.json"
+            fi
+        fi
+    fi
 }
 
 update_metadata_status() {
     local status=$1
     echo "Updating overall status: $status" >&2
-    # TODO: 実際のJSONファイル更新
+    
+    # JSONファイル更新
+    if [ -f "$DIFF_OUT_DIR/metadata.json" ]; then
+        if command -v jq >/dev/null 2>&1; then
+            local temp_file=$(mktemp)
+            jq --arg status "$status" '.status = $status' \
+               "$DIFF_OUT_DIR/metadata.json" > "$temp_file" && mv "$temp_file" "$DIFF_OUT_DIR/metadata.json"
+        fi
+    fi
 }
 
 # 必須ツールの存在チェック
@@ -197,17 +221,7 @@ fi
 # === 9. 差分フェーズの逐次実行 ===
 OVERALL_STATUS="ok"
 
-# PDF差分
-echo "=== Generating PDF diff ==="
-update_metadata_phase "pdf" "running" "$(date -Iseconds)"
-if bash "$SCRIPT_DIR/gen_diff_pdf.sh" "$TARGET_BASE" "$TARGET_CHANGED" "$BASE_REPO_PATH" "$CHANGED_REPO_PATH" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/pdf.log"; then
-    update_metadata_phase "pdf" "ok" "$(date -Iseconds)"
-else
-    update_metadata_phase "pdf" "fail" "$(date -Iseconds)" "pdf generation failed"
-    OVERALL_STATUS="partial-fail"
-fi
-
-# 画像差分
+# 画像差分（PDF生成前に実行）
 echo "=== Generating image diff ==="
 update_metadata_phase "images" "running" "$(date -Iseconds)"
 if bash "$SCRIPT_DIR/gen_diff_images.sh" "$TARGET_BASE" "$TARGET_CHANGED" "$BASE_REPO_PATH" "$CHANGED_REPO_PATH" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/images.log"; then
@@ -224,6 +238,16 @@ if bash "$SCRIPT_DIR/gen_diff_git.sh" "$BASE" "$CHANGED" "$DIFF_OUT_DIR" 2>"$DIF
     update_metadata_phase "git" "ok" "$(date -Iseconds)"
 else
     update_metadata_phase "git" "fail" "$(date -Iseconds)" "git diff failed"
+    OVERALL_STATUS="partial-fail"
+fi
+
+# PDF差分（最後に実行）
+echo "=== Generating PDF diff ==="
+update_metadata_phase "pdf" "running" "$(date -Iseconds)"
+if bash "$SCRIPT_DIR/gen_diff_pdf.sh" "$TARGET_BASE" "$TARGET_CHANGED" "$BASE_REPO_PATH" "$CHANGED_REPO_PATH" "$DIFF_OUT_DIR" 2>"$DIFF_OUT_DIR/logs/pdf.log"; then
+    update_metadata_phase "pdf" "ok" "$(date -Iseconds)"
+else
+    update_metadata_phase "pdf" "fail" "$(date -Iseconds)" "pdf generation failed"
     OVERALL_STATUS="partial-fail"
 fi
 

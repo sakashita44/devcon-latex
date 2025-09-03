@@ -191,7 +191,7 @@ load_config_from_path() {
     fi
 
     # 安全なconfig読み込み（コメントと空行をスキップ）
-    while IFS= read -r line || [ -n "$line" ]; do
+    while IFS= read -r line; do
         # コメント行と空行をスキップ
         case "$line" in
             ''|\#*) continue ;;
