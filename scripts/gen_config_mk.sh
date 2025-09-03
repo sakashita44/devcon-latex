@@ -34,6 +34,8 @@ SCALAR_KEYS=(
   LOG_DIR
   LOG_CAPTURE_DEFAULT
   LOG_TIMESTAMP_FORMAT
+  LATEXPAND_EXPAND_BBL
+  KEEP_TMP_DIR
 )
 
 # Array keys (will be converted to space-separated strings for Make)
