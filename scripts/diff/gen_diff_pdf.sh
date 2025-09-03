@@ -120,12 +120,12 @@ CHANGED_REPO_PATH=$4
 DIFF_OUT_DIR=$5
 
 # === 初期設定 ===
-echo "Starting PDF diff generation..."
-echo "TARGET_BASE: $TARGET_BASE"
-echo "TARGET_CHANGED: $TARGET_CHANGED"
-echo "BASE_REPO_PATH: $BASE_REPO_PATH"
-echo "CHANGED_REPO_PATH: $CHANGED_REPO_PATH"
-echo "DIFF_OUT_DIR: $DIFF_OUT_DIR"
+echo "Starting PDF diff generation..." >&2
+echo "TARGET_BASE: $TARGET_BASE" >&2
+echo "TARGET_CHANGED: $TARGET_CHANGED" >&2
+echo "BASE_REPO_PATH: $BASE_REPO_PATH" >&2
+echo "CHANGED_REPO_PATH: $CHANGED_REPO_PATH" >&2
+echo "DIFF_OUT_DIR: $DIFF_OUT_DIR" >&2
 
 # 配列変数の安全化（common.shのload_configで既に処理済みだが、明示的に確認）
 declare -a LATEXMK_OPTIONS=${LATEXMK_OPTIONS-()}
@@ -251,7 +251,7 @@ prepare_bbl_files "$BASE_TEX_ABS" "$BASE_OUT_DIR"
 echo "Preparing CHANGED .bbl file..."
 prepare_bbl_files "$CHANGED_TEX_ABS" "$CHANGED_OUT_DIR"
 
-echo "✅ .bbl file preparation completed"
+echo "✅ .bbl file preparation completed" >&2
 
 # === .tex ファイルの展開 (latexpand) ===
 echo "=== Expanding .tex files with latexpand ==="
@@ -297,7 +297,7 @@ if ! latexpand "${EXPANDED_OPTIONS[@]}" "$CHANGED_FILENAME" > "$TMP_DIR/changed-
 fi
 echo "CHANGED expansion output size: $(wc -l < "$TMP_DIR/changed-expand.tex") lines"
 
-echo "✅ LaTeX expansion completed"
+echo "✅ LaTeX expansion completed" >&2
 
 # === 差分.tex ファイルの生成 (latexdiff) ===
 echo "=== Generating diff.tex with latexdiff ==="
@@ -307,7 +307,7 @@ if ! try_latexdiff_with_fallback "$TMP_DIR/base-expand.tex" "$TMP_DIR/changed-ex
     exit 8
 fi
 
-echo "✅ Diff.tex generated successfully"
+echo "✅ Diff.tex generated successfully" >&2
 
 # === 差分PDFのビルド ===
 echo "=== Building diff PDF ==="
@@ -343,8 +343,8 @@ if [ ! -f "$DIFF_PDF_SOURCE" ]; then
 fi
 
 cp "$DIFF_PDF_SOURCE" "$DIFF_PDF_TARGET"
-echo "✅ Diff PDF saved to: $DIFF_PDF_TARGET"
+echo "✅ Diff PDF saved to: $DIFF_PDF_TARGET" >&2
 
 # === 結果の報告 ===
-echo "✅ PDF diff generation completed successfully"
-echo "Output: $DIFF_PDF_TARGET"
+echo "✅ PDF diff generation completed successfully" >&2
+echo "Output: $DIFF_PDF_TARGET" >&2
