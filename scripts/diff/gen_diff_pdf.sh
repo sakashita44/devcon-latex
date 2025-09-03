@@ -64,6 +64,47 @@ cleanup_bbl_files() {
     fi
 }
 
+# latexdiffのフォールバック機能
+try_latexdiff_with_fallback() {
+    local base_file="$1"
+    local changed_file="$2"
+    local output_file="$3"
+
+    # レベル1: config設定オプション
+    echo "Trying latexdiff with config options..."
+    if latexdiff "${LATEXDIFF_OPTIONS[@]}" "$base_file" "$changed_file" > "$output_file" 2>/dev/null; then
+        echo "✅ latexdiff succeeded with config options"
+        return 0
+    fi
+    echo "❌ latexdiff failed with config options, trying basic Japanese options..."
+
+    # レベル2: 基本日本語対応
+    local basic_opts=("--type=CFONT" "--encoding=utf8")
+    if latexdiff "${basic_opts[@]}" "$base_file" "$changed_file" > "$output_file" 2>/dev/null; then
+        echo "✅ latexdiff succeeded with basic Japanese options"
+        return 0
+    fi
+    echo "❌ latexdiff failed with basic options, trying safe options..."
+
+    # レベル3: 保守的設定（セクション・数式対応）
+    local safe_opts=("--type=CFONT" "--encoding=utf8" "--exclude-textcmd=section,subsection,subsubsection" "--math-markup=whole")
+    if latexdiff "${safe_opts[@]}" "$base_file" "$changed_file" > "$output_file" 2>/dev/null; then
+        echo "✅ latexdiff succeeded with safe options"
+        return 0
+    fi
+    echo "❌ latexdiff failed with safe options, trying safest options..."
+
+    # レベル4: 最保守的設定（数式無視）
+    local safest_opts=("--type=CFONT" "--encoding=utf8" "--exclude-textcmd=section,subsection,subsubsection" "--math-markup=off")
+    if latexdiff "${safest_opts[@]}" "$base_file" "$changed_file" > "$output_file" 2>/dev/null; then
+        echo "✅ latexdiff succeeded with safest options (math markup disabled)"
+        return 0
+    fi
+
+    echo "❌ ERROR: latexdiff failed with all option combinations" >&2
+    return 1
+}
+
 # スクリプト終了時の確実なクリーンアップ
 trap cleanup_bbl_files EXIT
 
@@ -182,25 +223,16 @@ else
     fi
 fi
 
-# .bblファイルの存在確認
-BASE_TEX_DIR=$(dirname "$BASE_TEX_ABS")
-CHANGED_TEX_DIR=$(dirname "$CHANGED_TEX_ABS")
-BASE_BBL="$BASE_REPO_PATH/out/$(basename "$TARGET_BASE" .tex).bbl"
-CHANGED_BBL="$CHANGED_REPO_PATH/out/$(basename "$TARGET_CHANGED" .tex).bbl"
+# .bblファイルの準備（.latexmkrcからout_dirを検出してコピー）
+echo "=== Preparing .bbl files for latexpand ==="
 
-echo "Checking for .bbl files..."
-echo "Expected BASE .bbl: $BASE_BBL"
-echo "Expected CHANGED .bbl: $CHANGED_BBL"
+echo "Preparing BASE .bbl file..."
+prepare_bbl_files "$BASE_TEX_ABS"
 
-if [ ! -f "$BASE_BBL" ] && [ ! -f "$CHANGED_BBL" ]; then
-    echo "Warning: No .bbl files generated (both missing). Continuing without bibliography processing."
-elif [ ! -f "$BASE_BBL" ]; then
-    echo "Warning: BASE .bbl file missing: $BASE_BBL"
-elif [ ! -f "$CHANGED_BBL" ]; then
-    echo "Warning: CHANGED .bbl file missing: $CHANGED_BBL"
-else
-    echo "✅ Both .bbl files generated successfully"
-fi
+echo "Preparing CHANGED .bbl file..."
+prepare_bbl_files "$CHANGED_TEX_ABS"
+
+echo "✅ .bbl file preparation completed"
 
 # === .tex ファイルの展開 (latexpand) ===
 echo "=== Expanding .tex files with latexpand ==="
@@ -235,8 +267,8 @@ echo "✅ LaTeX expansion completed"
 # === 差分.tex ファイルの生成 (latexdiff) ===
 echo "=== Generating diff.tex with latexdiff ==="
 
-if ! latexdiff "${LATEXDIFF_OPTIONS[@]}" "$TMP_DIR/base-expand.tex" "$TMP_DIR/changed-expand.tex" > "$TMP_DIR/diff.tex" 2>&1; then
-    echo "Error: latexdiff failed" >&2
+if ! try_latexdiff_with_fallback "$TMP_DIR/base-expand.tex" "$TMP_DIR/changed-expand.tex" "$TMP_DIR/diff.tex"; then
+    echo "Error: latexdiff failed with all fallback options" >&2
     exit 8
 fi
 
@@ -267,7 +299,13 @@ else
 fi
 
 # 生成されたPDFを出力ディレクトリにコピー
-DIFF_PDF_SOURCE="$CHANGED_DIR/diff.pdf"
+# .latexmkrcの設定に基づいてPDFの場所を検出
+OUT_DIR=$(detect_out_dir "$CHANGED_DIR")
+if [ -n "$OUT_DIR" ]; then
+    DIFF_PDF_SOURCE="$OUT_DIR/diff.pdf"
+else
+    DIFF_PDF_SOURCE="$CHANGED_DIR/diff.pdf"
+fi
 DIFF_PDF_TARGET="$DIFF_OUT_DIR/main-diff.pdf"
 
 if [ ! -f "$DIFF_PDF_SOURCE" ]; then
