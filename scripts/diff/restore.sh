@@ -42,11 +42,11 @@ git worktree add "$DEST_DIR" "$GIT_REF" >&2
 
 # === DVC/Git LFS ファイルの復元 ===
 if [ -d "$DEST_DIR/.dvc" ]; then
-    (cd "$DEST_DIR" && dvc pull -f)
+    (cd "$DEST_DIR" && dvc pull -f) >&2
 fi
 # git lfs statusの終了コードは、LFSがなくても0なので、`git lfs`コマンド自体の存在をチェック
 if git lfs >/dev/null 2>&1; then
-    (cd "$DEST_DIR" && git lfs pull)
+    (cd "$DEST_DIR" && git lfs pull) >&2
 fi
 
 # === 復元パスの出力 ===

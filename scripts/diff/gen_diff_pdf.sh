@@ -14,7 +14,8 @@ set -euo pipefail
 #
 # 依存設定 (config):
 #   - LATEXMK_OPTIONS (配列)
-#   - LATEXPAND_OPTIONS (配列)
+#   - LATEXPAND_OPTIONS (配列) ※--expand-bblは使用しないでください
+#   - LATEXPAND_EXPAND_BBL (0 or 1): --expand-bblオプションの使用制御
 #   - LATEXDIFF_OPTIONS (配列)
 #
 
@@ -36,19 +37,17 @@ detect_out_dir() {
 
 prepare_bbl_files() {
     local tex_file="$1"
+    local out_dir="$2"  # 明示的に出力ディレクトリを指定
     local tex_dir="$(dirname "$tex_file")"
     local tex_name="$(basename "$tex_file" .tex)"
 
-    local out_dir=$(detect_out_dir "$tex_dir")
-    if [ -n "$out_dir" ]; then
-        local bbl_source="$tex_dir/$out_dir/$tex_name.bbl"
-        local bbl_dest="$tex_dir/$tex_name.bbl"
+    local bbl_source="$out_dir/$tex_name.bbl"
+    local bbl_dest="$tex_dir/$tex_name.bbl"
 
-        if [ -f "$bbl_source" ] && [ ! -f "$bbl_dest" ]; then
-            cp "$bbl_source" "$bbl_dest"
-            echo "Copied .bbl file: $bbl_source -> $bbl_dest"
-            echo "$bbl_dest" >> "/tmp/bbl_cleanup_$$"
-        fi
+    if [ -f "$bbl_source" ] && [ ! -f "$bbl_dest" ]; then
+        cp "$bbl_source" "$bbl_dest"
+        echo "Copied .bbl file: $bbl_source -> $bbl_dest"
+        echo "$bbl_dest" >> "/tmp/bbl_cleanup_$$"
     fi
 }
 
@@ -133,6 +132,22 @@ declare -a LATEXMK_OPTIONS=${LATEXMK_OPTIONS-()}
 declare -a LATEXPAND_OPTIONS=${LATEXPAND_OPTIONS-()}
 declare -a LATEXDIFF_OPTIONS=${LATEXDIFF_OPTIONS-()}
 
+# LATEXPAND_EXPAND_BBL設定の検証 (0 or 1のみ許可)
+LATEXPAND_EXPAND_BBL=${LATEXPAND_EXPAND_BBL:-0}
+if [[ ! "$LATEXPAND_EXPAND_BBL" =~ ^[01]$ ]]; then
+    echo "Error: LATEXPAND_EXPAND_BBL must be 0 or 1, got: $LATEXPAND_EXPAND_BBL" >&2
+    exit 1
+fi
+
+# LATEXPAND_OPTIONSに--expand-bblが含まれていないかチェック
+for opt in "${LATEXPAND_OPTIONS[@]}"; do
+    if [[ "$opt" == "--expand-bbl" ]]; then
+        echo "Error: --expand-bbl should not be specified in LATEXPAND_OPTIONS." >&2
+        echo "Use LATEXPAND_EXPAND_BBL=1 instead." >&2
+        exit 1
+    fi
+done
+
 # 作業用一時ディレクトリ
 TMP_DIR="$DIFF_OUT_DIR/tmp"
 mkdir -p "$TMP_DIR"
@@ -173,15 +188,17 @@ else
 fi
 
 # BASE側ビルド
+BASE_OUT_DIR="$TMP_DIR/base/out"
+mkdir -p "$BASE_OUT_DIR"
 if [ -n "$BASE_LATEXMKRC" ]; then
     echo "Using .latexmkrc: $BASE_LATEXMKRC"
-    if ! latexmk -cd -r "$BASE_LATEXMKRC" "${LATEXMK_OPTIONS[@]}" "$BASE_TEX_ABS" 2>&1; then
+    if ! latexmk -cd -r "$BASE_LATEXMKRC" -output-directory="$BASE_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$BASE_TEX_ABS" 2>&1; then
         echo "Error: latexmk failed for BASE side" >&2
         exit 6
     fi
 else
     echo "No .latexmkrc found, using default latexmk"
-    if ! latexmk -cd "${LATEXMK_OPTIONS[@]}" "$BASE_TEX_ABS" 2>&1; then
+    if ! latexmk -cd -output-directory="$BASE_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$BASE_TEX_ABS" 2>&1; then
         echo "Error: latexmk failed for BASE side" >&2
         exit 6
     fi
@@ -209,15 +226,17 @@ else
 fi
 
 # CHANGED側ビルド
+CHANGED_OUT_DIR="$TMP_DIR/changed/out"
+mkdir -p "$CHANGED_OUT_DIR"
 if [ -n "$CHANGED_LATEXMKRC" ]; then
     echo "Using .latexmkrc: $CHANGED_LATEXMKRC"
-    if ! latexmk -cd -r "$CHANGED_LATEXMKRC" "${LATEXMK_OPTIONS[@]}" "$CHANGED_TEX_ABS" 2>&1; then
+    if ! latexmk -cd -r "$CHANGED_LATEXMKRC" -output-directory="$CHANGED_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$CHANGED_TEX_ABS" 2>&1; then
         echo "Error: latexmk failed for CHANGED side" >&2
         exit 6
     fi
 else
     echo "No .latexmkrc found, using default latexmk"
-    if ! latexmk -cd "${LATEXMK_OPTIONS[@]}" "$CHANGED_TEX_ABS" 2>&1; then
+    if ! latexmk -cd -output-directory="$CHANGED_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$CHANGED_TEX_ABS" 2>&1; then
         echo "Error: latexmk failed for CHANGED side" >&2
         exit 6
     fi
@@ -227,10 +246,10 @@ fi
 echo "=== Preparing .bbl files for latexpand ==="
 
 echo "Preparing BASE .bbl file..."
-prepare_bbl_files "$BASE_TEX_ABS"
+prepare_bbl_files "$BASE_TEX_ABS" "$BASE_OUT_DIR"
 
 echo "Preparing CHANGED .bbl file..."
-prepare_bbl_files "$CHANGED_TEX_ABS"
+prepare_bbl_files "$CHANGED_TEX_ABS" "$CHANGED_OUT_DIR"
 
 echo "✅ .bbl file preparation completed"
 
@@ -243,7 +262,15 @@ cd "$BASE_DIR" || exit 7
 echo "Current directory: $(pwd)"
 BASE_FILENAME=$(basename "$TARGET_BASE")
 echo "Target file: $BASE_FILENAME"
-if ! latexpand "${LATEXPAND_OPTIONS[@]}" "$BASE_FILENAME" > "$TMP_DIR/base-expand.tex" 2>&1; then
+
+# --expand-bbl オプションの処理
+EXPANDED_OPTIONS=("${LATEXPAND_OPTIONS[@]}")
+if [[ "$LATEXPAND_EXPAND_BBL" == "1" ]]; then
+    BASE_BBL_FILE="$BASE_DIR/$(basename "$BASE_FILENAME" .tex).bbl"
+    EXPANDED_OPTIONS+=("--expand-bbl" "$BASE_BBL_FILE")
+fi
+
+if ! latexpand "${EXPANDED_OPTIONS[@]}" "$BASE_FILENAME" > "$TMP_DIR/base-expand.tex" 2>&1; then
     echo "Error: latexpand failed for BASE side" >&2
     echo "Error details:" >&2
     cat "$TMP_DIR/base-expand.tex" >&2
@@ -256,7 +283,15 @@ echo "Expanding CHANGED side..."
 cd "$CHANGED_DIR" || exit 7
 CHANGED_FILENAME=$(basename "$TARGET_CHANGED")
 echo "Target file: $CHANGED_FILENAME"
-if ! latexpand "${LATEXPAND_OPTIONS[@]}" "$CHANGED_FILENAME" > "$TMP_DIR/changed-expand.tex" 2>&1; then
+
+# --expand-bbl オプションの処理
+EXPANDED_OPTIONS=("${LATEXPAND_OPTIONS[@]}")
+if [[ "$LATEXPAND_EXPAND_BBL" == "1" ]]; then
+    CHANGED_BBL_FILE="$CHANGED_DIR/$(basename "$CHANGED_FILENAME" .tex).bbl"
+    EXPANDED_OPTIONS+=("--expand-bbl" "$CHANGED_BBL_FILE")
+fi
+
+if ! latexpand "${EXPANDED_OPTIONS[@]}" "$CHANGED_FILENAME" > "$TMP_DIR/changed-expand.tex" 2>&1; then
     echo "Error: latexpand failed for CHANGED side" >&2
     exit 7
 fi
@@ -286,26 +321,20 @@ echo "Copied diff.tex to: $DIFF_TEX_TARGET"
 # CHANGED側でdiff.texをビルド
 if [ -n "$CHANGED_LATEXMKRC" ]; then
     echo "Building diff.pdf with .latexmkrc: $CHANGED_LATEXMKRC"
-    if ! latexmk -cd -r "$CHANGED_LATEXMKRC" "${LATEXMK_OPTIONS[@]}" "$DIFF_TEX_TARGET" 2>&1; then
+    if ! latexmk -cd -r "$CHANGED_LATEXMKRC" -output-directory="$CHANGED_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$DIFF_TEX_TARGET" 2>&1; then
         echo "Error: latexmk failed for diff.tex" >&2
         exit 9
     fi
 else
     echo "Building diff.pdf with default latexmk"
-    if ! latexmk -cd "${LATEXMK_OPTIONS[@]}" "$DIFF_TEX_TARGET" 2>&1; then
+    if ! latexmk -cd -output-directory="$CHANGED_OUT_DIR" "${LATEXMK_OPTIONS[@]}" "$DIFF_TEX_TARGET" 2>&1; then
         echo "Error: latexmk failed for diff.tex" >&2
         exit 9
     fi
 fi
 
 # 生成されたPDFを出力ディレクトリにコピー
-# .latexmkrcの設定に基づいてPDFの場所を検出
-OUT_DIR=$(detect_out_dir "$CHANGED_DIR")
-if [ -n "$OUT_DIR" ]; then
-    DIFF_PDF_SOURCE="$OUT_DIR/diff.pdf"
-else
-    DIFF_PDF_SOURCE="$CHANGED_DIR/diff.pdf"
-fi
+DIFF_PDF_SOURCE="$CHANGED_OUT_DIR/diff.pdf"
 DIFF_PDF_TARGET="$DIFF_OUT_DIR/main-diff.pdf"
 
 if [ ! -f "$DIFF_PDF_SOURCE" ]; then

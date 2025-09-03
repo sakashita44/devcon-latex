@@ -8,10 +8,12 @@ DEFAULT_TARGET=src/main.tex
 # 例 コンパイル後に中間ファイルを削除し、出力を抑制
 # LATEXMK_OPTIONS=("-c" "-silent")
 LATEXMK_OPTIONS=()
-# latexpandのオプション
-LATEXPAND_OPTIONS=("--expand-bbl" "--empty-comments")
-# latexdiffのオプション
-LATEXDIFF_OPTIONS=("--math-markup=3" "--type=UNDERLINE")
+# latexpandのオプション（--expand-bblは自動制御されるため指定しないでください）
+LATEXPAND_OPTIONS=("--empty-comments")
+# latexpandで--expand-bblオプションを使用するかどうか（0: 使用しない, 1: 使用する）
+LATEXPAND_EXPAND_BBL=0
+# latexdiffのオプション（日本語対応）
+LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole" "--exclude-textcmd=section,subsection,subsubsection")
 # .latexmkrcファイルの探索範囲設定
 # ターゲットのTeXファイルと同じフォルダに.latexmkrcが見つからない場合, 何階層上のフォルダまで.latexmkrcを探しに行くかを指定
 # 例: 3に設定した場合, 最大3階層上のフォルダまで探索する
@@ -20,6 +22,8 @@ LATEXMKRC_EXPLORATION_RANGE=3
 ### 差分生成関係 ###
 # デフォルトのmake diffの出力ディレクトリ(make diffでOUT_DIRが指定されない場合に使用)
 DEFAULT_OUT_DIR=out/
+# 一時ディレクトリを保持するかどうか（0: 削除, 1: 保持）デバッグ用
+KEEP_TMP_DIR=0
 # Gitの差分を出力する拡張子リスト
 GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
 # 画像差分を出力する拡張子リスト

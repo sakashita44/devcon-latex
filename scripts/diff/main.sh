@@ -120,9 +120,15 @@ cleanup() {
     if [ -d "$LOCKDIR" ]; then
         rmdir "$LOCKDIR" 2>/dev/null || true
     fi
-    # 正常終了時のみ TMP_DIR を削除
+    # 正常終了時のTMP_DIR削除（設定のKEEP_TMP_DIRまたは環境変数でスキップ可能）
     if [ $exit_code -eq 0 ] && [ -n "${TMP_DIR:-}" ] && [ -d "$TMP_DIR" ]; then
-        rm -rf "$TMP_DIR"
+        local keep_tmp="${KEEP_TMP_DIR:-0}"  # 設定ファイルから取得、未設定時は0
+        keep_tmp="${KEEP_TMP_DIR_ENV:-$keep_tmp}"  # 環境変数で上書き可能
+        if [ "$keep_tmp" != "1" ]; then
+            rm -rf "$TMP_DIR"
+        else
+            echo "TMP_DIR preserved for debugging: $TMP_DIR" >&2
+        fi
     fi
 }
 trap cleanup EXIT

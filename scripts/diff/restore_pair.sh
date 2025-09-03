@@ -45,16 +45,16 @@ mkdir -p "$TMP_DIR"
 
 # === BASE リビジョンの復元 ===
 BASE_DEST_DIR="$TMP_DIR/base"
-BASE_REPO_PATH=$(bash "$RESTORE_SCRIPT" "$BASE_REF" "$BASE_DEST_DIR")
-if [ $? -ne 0 ]; then
+BASE_REPO_PATH=$(bash "$RESTORE_SCRIPT" "$BASE_REF" "$BASE_DEST_DIR" 2>&1 | tail -n1)
+if [ $? -ne 0 ] || [ -z "$BASE_REPO_PATH" ]; then
     echo "Error: Failed to restore BASE revision $BASE_REF" >&2
     exit 1
 fi
 
 # === CHANGED リビジョンの復元 ===
 CHANGED_DEST_DIR="$TMP_DIR/changed"
-CHANGED_REPO_PATH=$(bash "$RESTORE_SCRIPT" "$CHANGED_REF" "$CHANGED_DEST_DIR")
-if [ $? -ne 0 ]; then
+CHANGED_REPO_PATH=$(bash "$RESTORE_SCRIPT" "$CHANGED_REF" "$CHANGED_DEST_DIR" 2>&1 | tail -n1)
+if [ $? -ne 0 ] || [ -z "$CHANGED_REPO_PATH" ]; then
     echo "Error: Failed to restore CHANGED revision $CHANGED_REF" >&2
     exit 1
 fi
