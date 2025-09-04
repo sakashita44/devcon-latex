@@ -1,252 +1,226 @@
 # スクリプト詳細仕様
 
-このディレクトリには、LaTeX + DVC統合ワークフローを支援するスクリプト群が含まれています。
+このディレクトリには、LaTeX論文執筆と差分生成を支援するスクリプト群が含まれています。
 
-## スクリプト一覧
+## ディレクトリ構成
 
-* `common.sh` - 共通関数・ユーティリティ
-* `dvc_init.sh` - DVC初期化処理
-* `dvc_validator.sh` - DVC状態確認・接続テスト
-* `dvc_restore.sh` - DVC復元・移行機能
-* `dvc_remote.sh` - リモートストレージ管理
-* `image_manager.sh` - 画像ファイル管理
-* `generate_diff.sh` - LaTeX差分生成（既存）
+```text
+scripts/
+├── common.sh              # 共通関数・ユーティリティ
+├── gen_config_mk.sh       # 設定ファイル処理
+├── build/
+│   └── build.sh          # LaTeXビルド処理
+├── diff/                 # 差分生成システム
+│   ├── main.sh           # 差分生成メイン処理
+│   ├── gen_diff_git.sh   # Git差分生成
+│   ├── gen_diff_images.sh # 画像差分検出
+│   ├── gen_diff_pdf.sh   # PDF差分生成
+│   ├── resolve_refs.sh   # Git参照解決
+│   ├── restore.sh        # 差分生成用ファイル復元
+│   └── restore_pair.sh   # ペア復元処理
+└── validate/             # バリデーション機能
+    ├── validate_git.sh   # Git状態確認
+    ├── validate_latex.sh # LaTeX状態確認
+    └── validate_tags.sh  # タグ重複確認
+```
 
-## 共通関数（common.sh）
+## 主要スクリプト
 
-### 概要
+### 共通関数（common.sh）
 
 全スクリプトで使用される共通関数とユーティリティを提供。
 
-### 主要関数
-
 #### メッセージ関数
 
-* `print_info(message)` - 情報メッセージ表示
-* `print_success(message)` - 成功メッセージ表示
-* `print_warning(message)` - 警告メッセージ表示
-* `print_error(message)` - エラーメッセージ表示
+* `log_info(message)` - 情報メッセージ表示
+* `log_success(message)` - 成功メッセージ表示
+* `log_warning(message)` - 警告メッセージ表示
+* `log_error(message)` - エラーメッセージ表示
 
-#### チェック関数
+#### ユーティリティ関数
 
-* `check_dvc_initialized()` - DVC初期化状態確認
-* `check_file_exists(file)` - ファイル存在確認
-* `is_excluded(file)` - DVC除外リスト確認
-* `is_git_managed(file)` - Git管理状態確認
-* `is_dvc_managed(file)` - DVC管理状態確認
+* `find_git_root()` - Gitリポジトリルート検索
+* `create_temp_dir(prefix)` - 一時ディレクトリ作成
+* `cleanup_temp_dir(dir)` - 一時ディレクトリ削除
+* `validate_file_exists(file)` - ファイル存在確認
 
-#### 除外リスト管理
-
-* `add_to_exclude_list(file)` - 除外リストに追加
-* `remove_from_exclude_list(file)` - 除外リストから削除
-
-### 使用例
+#### 使用例
 
 ```bash
 # スクリプト内での読み込み
 source "$(dirname "$0")/common.sh"
 
 # 関数の使用
-check_file_exists "figures/image.png"
-if is_excluded "figures/template.png"; then
-    print_info "ファイルは除外設定済み"
-fi
+log_info "処理を開始します"
+TEMP_DIR=$(create_temp_dir "diff_work")
 ```
 
-## DVC初期化（dvc_init.sh）
+### 設定ファイル処理（gen_config_mk.sh）
 
-### 概要
-
-DVCの初期化と既存画像ファイルの自動管理開始を行う。
-
-### 実行フロー
-
-1. DVC初期化（`dvc init`）
-2. リモートストレージ設定
-3. 既存画像ファイルの検索とDVC追加
-4. Git設定のコミット
-
-### 呼び出し形式
+`config`ファイルから`.config.mk`を生成し、Makefileで使用可能な形式に変換。
 
 ```bash
-./dvc_init.sh <remote_name> <remote_url> <managed_dirs> <image_extensions>
+./scripts/gen_config_mk.sh config .config.mk
 ```
 
-### パラメータ
+### ビルドシステム（build/build.sh）
 
-* `remote_name` - DVCリモート名
-* `remote_url` - リモートストレージURL（オプション）
-* `managed_dirs` - 管理対象ディレクトリ（スペース区切り）
-* `image_extensions` - 画像拡張子（スペース区切り）
+LaTeX文書のビルド、監視、クリーンアップを統一的に処理。
 
-### 主要関数
+#### サポート機能
 
-* `execute_dvc_init()` - DVC初期化メイン処理
-* `add_existing_images()` - 既存画像の一括追加
-
-## 画像管理（image_manager.sh）
-
-### 概要
-
-画像ファイルの管理状況表示と新規画像のDVC追加処理。
-
-### 主要機能
-
-#### show-changes
-
-新規・変更画像の一覧表示（除外リスト対応）
+* `build` - 指定されたTeXファイルのビルド
+* `watch` - ファイル変更監視による自動ビルド
+* `clean` - 一時ファイルと出力ファイルのクリーンアップ
 
 ```bash
-./image_manager.sh show-changes "figures" "png jpg"
+./scripts/build/build.sh build "src/main.tex"
+./scripts/build/build.sh watch "src/main.tex"
+./scripts/build/build.sh clean "src/main.tex"
 ```
 
-#### add-safe
+## 差分生成システム（diff/）
 
-新規画像のDVC管理への安全な移行
+### メイン処理（main.sh）
+
+4つのモードで差分生成を統括管理。
+
+#### 実行モード
+
+* `all` - 全ての差分生成（PDF、画像、Git差分、メタデータ）
+* `pdf` - PDF差分のみ生成
+* `images` - 画像差分のみ検出
+* `ext` - 拡張子別Git差分のみ生成
 
 ```bash
-./image_manager.sh add-safe "figures" "png jpg"
+MODE=all bash ./scripts/diff/main.sh "src/main.tex" "src/main.tex" "v1.0" "v2.0" "out/"
 ```
 
-#### show-status
+#### 出力構造
 
-画像ファイルの管理状況詳細表示
+```text
+out/diff_v1.0_to_v2.0/
+├── metadata.json          # 実行情報とサマリ
+├── main-diff.pdf          # PDF差分（MODE=pdf,all時）
+├── git_summary.csv        # Git差分サマリ
+├── image_summary.csv      # 画像差分サマリ
+├── git-diffs/             # 拡張子別差分
+│   ├── tex.diff
+│   ├── bib.diff
+│   └── sty.diff
+├── images/                # 画像差分
+│   ├── added/             # 追加画像
+│   ├── deleted/           # 削除画像
+│   └── modified/          # 変更画像
+└── logs/                  # 実行ログ
+    ├── git.log
+    ├── images.log
+    └── pdf.log
+```
+
+### Git差分生成（gen_diff_git.sh）
+
+指定したGit参照間でファイル拡張子ごとの差分を生成。
 
 ```bash
-./image_manager.sh show-status "figures" "png jpg"
+./scripts/diff/gen_diff_git.sh "v1.0" "v2.0" "out/diff_output" "tex bib sty"
 ```
 
-### 主要関数
+### 画像差分検出（gen_diff_images.sh）
 
-* `show_image_changes()` - 画像変更状況表示
-* `add_new_images_safe()` - 安全なDVC追加処理
-* `show_image_status()` - 管理状況詳細表示
-
-## DVC復元（dvc_restore.sh）
-
-### 概要
-
-DVC管理ファイルのGit管理への復元とDVC設定の削除。
-
-### 主要機能
-
-#### file
-
-指定ファイルのGit管理復元
+画像ファイルの追加・削除・変更を検出し分類。
 
 ```bash
-./dvc_restore.sh file "figures/image.png"
+./scripts/diff/gen_diff_images.sh "v1.0" "v2.0" "out/diff_output" "png jpg pdf"
 ```
 
-#### all
+### PDF差分生成（gen_diff_pdf.sh）
 
-全DVC管理ファイルの一括復元
+LaTeX文書の視覚的差分PDFを`latexdiff`で生成。
 
 ```bash
-./dvc_restore.sh all "figures images"
+./scripts/diff/gen_diff_pdf.sh "src/main.tex" "src/main.tex" "v1.0" "v2.0" "out/diff_output"
 ```
 
-#### remove
+### Git参照解決（resolve_refs.sh）
 
-DVC設定の完全削除
+Git参照（タグ、ブランチ、コミットハッシュ）を実際のコミットハッシュに解決。
 
 ```bash
-./dvc_restore.sh remove
+./scripts/diff/resolve_refs.sh "v1.0" "HEAD"
+# 出力例: abc123ef def456gh
 ```
 
-### 主要関数
+### 復元処理（restore.sh, restore_pair.sh）
 
-* `restore_to_git()` - 単一ファイル復元
-* `restore_all_to_git()` - 全ファイル復元
-* `remove_dvc_completely()` - DVC完全削除
+差分生成時に使用する一時的なファイル復元処理。
 
-## リモート管理（dvc_remote.sh）
+## バリデーション機能（validate/）
 
-### 概要
+### Git状態確認（validate_git.sh）
 
-DVCリモートストレージの管理とデータ同期。
-
-### 主要機能
-
-#### add
-
-リモートストレージ追加・更新
+リポジトリの状態確認とクリーンアップ状況の検証。
 
 ```bash
-./dvc_remote.sh add "storage" "ssh://user@server/path"
+./scripts/validate/validate_git.sh
 ```
 
-#### list
+### LaTeX状態確認（validate_latex.sh）
 
-設定済みリモート一覧表示
+指定されたTeXファイルとその依存関係の確認。
 
 ```bash
-./dvc_remote.sh list
+./scripts/validate/validate_latex.sh "src/main.tex"
 ```
 
-#### test
+### タグ重複確認（validate_tags.sh）
 
-リモート接続テスト
+Gitタグの重複確認。
 
 ```bash
-./dvc_remote.sh test "storage"
+./scripts/validate/validate_tags.sh "v2.0"
 ```
 
-#### push/pull/fetch
+## 設定とカスタマイズ
 
-データ同期操作
+### 設定ファイル（config）
+
+主要な設定パラメータ：
 
 ```bash
-./dvc_remote.sh push "storage"    # アップロード
-./dvc_remote.sh pull "storage"    # ダウンロード
-./dvc_remote.sh fetch "storage"   # 確認のみ
+# ビルド関係
+DEFAULT_TARGET=src/main.tex
+DEFAULT_OUT_DIR=out/
+LATEXMK_OPTIONS=()
+
+# 差分生成関係
+GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
+IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg)
+KEEP_TMP_DIR=0
 ```
 
-### 主要関数
+### 実行例
 
-* `add_remote()` - リモート追加
-* `remove_remote()` - リモート削除
-* `list_remotes()` - リモート一覧
-* `test_remote()` - 接続テスト
-* `sync_data()` - データ同期
-
-## DVC検証（dvc_validator.sh）
-
-### 概要
-
-DVC環境の状態確認と接続テスト。
-
-### 主要機能
-
-#### validate
-
-DVC環境の包括的検証
+#### ビルド関連
 
 ```bash
-./dvc_validator.sh validate "figures images"
+make build                              # デフォルトターゲット
+make build TARGET=src/lualatex-jp-test/main.tex  # 特定ターゲット
 ```
 
-#### check-connection
-
-リモートストレージ接続確認
+#### 差分生成
 
 ```bash
-./dvc_validator.sh check-connection "storage"
+make diff-pdf BASE=v1.0 CHANGED=v2.0   # PDF差分
+make diff BASE=v1.0 CHANGED=HEAD       # 全差分生成
 ```
 
-#### status
-
-DVC状態の詳細表示
+#### バリデーション
 
 ```bash
-./dvc_validator.sh status "figures"
+make validate                           # 全体確認
+make validate-latex TARGET=src/main.tex # LaTeX確認
 ```
-
-### 主要関数
-
-* `validate_dvc()` - DVC環境検証
-* `check_dvc_connection()` - 接続確認
-* `show_dvc_status()` - 状態表示
 
 ## エラーハンドリング
 
@@ -255,27 +229,7 @@ DVC状態の詳細表示
 * `set -e` によるエラー時即座終了
 * 共通関数による統一メッセージフォーマット
 * 適切な終了コード設定
-* ユーザー確認プロンプト
-
-## 拡張・カスタマイズ
-
-### 新機能追加
-
-1. `common.sh` に共通関数を追加
-2. 専用スクリプトファイルを作成
-3. Makefileにターゲット追加
-
-### 設定変更
-
-`latex.config` でパラメータ調整が可能：
-
-```bash
-# 管理対象拡張子追加
-IMAGE_EXTENSIONS=png jpg jpeg pdf eps svg tiff
-
-# 管理ディレクトリ追加
-DVC_MANAGED_DIRS=figures images data plots
-```
+* 詳細なログ出力
 
 ## デバッグ
 
@@ -283,11 +237,13 @@ DVC_MANAGED_DIRS=figures images data plots
 
 ```bash
 # デバッグモード実行
-bash -x ./scripts/image_manager.sh show-status "figures" "png"
+bash -x ./scripts/diff/main.sh
 
-# 関数単体テスト
-source scripts/common.sh
-check_file_exists "test.png"
+# 一時ディレクトリ保持
+KEEP_TMP_DIR=1 make diff-pdf BASE=v1.0 CHANGED=v2.0
+
+# ログ確認
+cat out/diff_v1.0_to_v2.0/logs/pdf.log
 ```
 
 各スクリプトは独立して実行可能で、Makefileを経由せずに直接テストできます。
