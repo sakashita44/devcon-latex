@@ -20,7 +20,11 @@ git clone <リポジトリURL>
 cd <リポジトリ名>
 
 # 設定ファイル作成
-cp latex.config.example latex.config
+cp config.example config
+
+# 必要に応じて設定を編集（主要なデフォルト値）
+# DEFAULT_TARGET=src/main.tex      # ビルド対象ファイル
+# DEFAULT_OUT_DIR=out/             # 出力ディレクトリ
 
 # 環境の確認
 make validate
@@ -46,7 +50,7 @@ git push origin v1.0.0
 論文の執筆を進め，適宜ビルドとコミット
 
 ```bash
-# 文書の編集（main.tex, chapters/*.tex など）
+# 文書の編集（src/main.tex, src/chapters/*.tex など）
 
 # ビルドして確認
 make build
@@ -81,12 +85,27 @@ git push origin v2.0.0
 差分計算ツールを使用して変更点を確認
 
 ```bash
-# 自動差分計算（直前の変更を表示）
-make diff
+# 全差分生成（PDF、画像、Git差分、メタデータ）
+make diff BASE=v1.0.0 CHANGED=v2.0.0
 
-# 特定バージョン間の差分
+# PDF差分のみ生成
 make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0
+
+# 画像差分のみ検出
+make diff-images BASE=v1.0.0 CHANGED=v2.0.0
+
+# 拡張子別Git差分のみ生成
+make diff-ext BASE=v1.0.0 CHANGED=v2.0.0
+
+# オプション引数の指定も可能
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0 TARGET_BASE=src/main.tex TARGET_CHANGED=src/main.tex OUT=custom_output/
 ```
+
+**引数の説明:**
+
+- `BASE`, `CHANGED`: 必須。比較するGit参照（タグ、ブランチ、コミットハッシュ）
+- `TARGET_BASE`, `TARGET_CHANGED`: 省略可能。デフォルトは`config`の`DEFAULT_TARGET`
+- `OUT`: 省略可能。デフォルトは`config`の`DEFAULT_OUT_DIR`
 
 ### 6. レビューと修正
 
@@ -136,9 +155,27 @@ make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0
 
 ### 差分出力ファイル
 
-- `diff_output/git_diff.txt`: Git差分（テキスト形式）
-- `diff_output/diff.tex`: LaTeX差分ファイル
-- `diff_output/diff.pdf`: 視覚的差分PDF
+差分生成により以下の構造で出力されます：
+
+```text
+out/diff_v1.0.0_to_v2.0.0/
+├── metadata.json          # 実行情報とサマリ
+├── main-diff.pdf          # PDF差分
+├── git_summary.csv        # Git差分サマリ
+├── image_summary.csv      # 画像差分サマリ
+├── git-diffs/             # 拡張子別差分
+│   ├── tex.diff
+│   ├── bib.diff
+│   └── sty.diff
+├── images/                # 画像差分
+│   ├── added/             # 追加画像
+│   ├── deleted/           # 削除画像
+│   └── modified/          # 変更画像
+└── logs/                  # 実行ログ
+    ├── git.log
+    ├── images.log
+    └── pdf.log
+```
 
 ### バックアップとアーカイブ
 
@@ -149,7 +186,7 @@ make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0
 git archive --format=zip --output=paper_v2.0.0.zip v2.0.0
 
 # 差分PDFのアーカイブ
-cp diff_output/diff.pdf archive/diff_v1.0.0_to_v2.0.0.pdf
+cp out/diff_v1.0.0_to_v2.0.0/main-diff.pdf archive/diff_v1.0.0_to_v2.0.0.pdf
 ```
 
 ## 利用可能なコマンド一覧
@@ -157,23 +194,82 @@ cp diff_output/diff.pdf archive/diff_v1.0.0_to_v2.0.0.pdf
 ### 基本機能
 
 - `make build` - LaTeX文書をビルド
+    - デフォルトターゲット: `config`の`DEFAULT_TARGET`（通常`src/main.tex`）
+    - オプション: `TARGET=src/other.tex`で特定ファイル指定
+- `make build-safe` - バリデーション付きビルド
 - `make watch` - ファイル変更を監視して自動ビルド
 - `make clean` - 出力ファイルをクリーンアップ
-- `make validate` - 全体の状態確認
 
 ### 差分機能
 
-- `make diff` - 直前の変更を差分表示
-- `make diff-pdf BASE=tag1 CHANGED=tag2` - 指定バージョン間の差分PDF生成
+**必須引数**: `BASE=<git参照>` `CHANGED=<git参照>`
+
+- `make diff BASE=tag1 CHANGED=tag2` - 全差分生成（PDF、画像、Git差分、メタデータ）
+- `make diff-pdf BASE=tag1 CHANGED=tag2` - PDF差分のみ生成
+- `make diff-images BASE=tag1 CHANGED=tag2` - 画像差分のみ検出
+- `make diff-ext BASE=tag1 CHANGED=tag2` - 拡張子別Git差分のみ生成
+
+**省略可能な引数**:
+
+- `TARGET_BASE=<TeXファイル>` `TARGET_CHANGED=<TeXファイル>` - 比較対象ファイル（デフォルト: `DEFAULT_TARGET`）
+- `OUT=<出力ディレクトリ>` - 出力先（デフォルト: `DEFAULT_OUT_DIR`）
+
+### バリデーション機能
+
+- `make validate` - 全体の状態確認（Git、LaTeX、タグ）
+- `make validate-git` - Git状態確認
+- `make validate-latex` - LaTeXファイル確認
+    - オプション: `TARGET=src/other.tex`で特定ファイル指定
+- `make validate-tags` - タグ重複確認
+    - オプション: `TAG=v2.0`で特定タグ確認
 
 ### その他
 
 - `make help` - 利用可能なコマンド一覧表示
+- `make add-tag` - 対話式でタグを作成
+
+### 使用例
+
+```bash
+# 基本的なビルド
+make build                                    # デフォルトターゲット（config の DEFAULT_TARGET）
+make build TARGET=src/lualatex-jp-test/main.tex  # 特定ターゲット
+
+# 差分生成
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0     # 基本的な差分PDF
+make diff BASE=HEAD~1 CHANGED=HEAD           # 直前のコミットとの差分
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0 TARGET_BASE=src/main.tex TARGET_CHANGED=src/main.tex OUT=review_output/
+
+# バリデーション
+make validate                                 # 全体確認
+make validate-latex TARGET=src/pdflatex-test/main.tex  # 特定ターゲットの確認
+make validate-tags TAG=v2.0.0               # 特定タグの重複確認
+```
 
 詳細な設定方法は [`Configuration_Examples.md`](Configuration_Examples.md) を参照してください．
+
+## 大容量画像ファイルの管理（オプション）
+
+大容量の画像ファイルがある場合は、DVCを使用して管理できます：
+
+```bash
+# DVC初期化
+dvc init
+
+# リモートストレージ設定
+dvc remote add -d storage ssh://user@server/path
+
+# 大容量画像の管理
+dvc add src/figures/large_image.png
+dvc push
+
+# 他の環境での取得
+dvc pull
+```
+
+詳細は[DVC公式ドキュメント](https://dvc.org/doc)を参照してください。
 
 ## 関連ドキュメント
 
 - **設定とカスタマイズ**: [`Configuration_Examples.md`](Configuration_Examples.md) - 様々な環境での設定例
-- **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - 大容量画像ファイルがある場合の発展形ワークフロー
 - **差分ツール詳細**: [`README_DiffTool.md`](README_DiffTool.md) - 差分計算ツールの詳細仕様
