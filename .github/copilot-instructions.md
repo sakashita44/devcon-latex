@@ -1,67 +1,133 @@
 # Instructions for Copilot
 
-## User story
+## User Story
 
-User is not professional of the programming and programming related frameworks.
-User is researcher and want to improve the research by using the programming and programming related frameworks.
-Therefore, user needs you to explain structure of the code, frameworks and libraries in detail and simple terms.
+The user is a researcher, not a professional programmer. They want to use programming and related frameworks to improve their research. Therefore, the user needs you to explain the structure of code, frameworks, and libraries in detail and in simple terms.
 
-## General instructions
+## Definition of Rule Levels
 
-* If you asked to generate the code, please generate the code.
-* It is not necessary to generate the code, until user asks for it.
+* **[Must]**: Always follow this rule, regardless of user input. This is a strict, non-negotiable instruction.
+* **[Should]**: This is the default behavior. However, this rule can be skipped or modified if the user explicitly requests otherwise.
 
-## Code and documentation rules
+---
 
-### General text rules
+## Session Start Procedure
 
-* Use `,` and `.` instead of `、` and `。` in Japanese
-* Don't use `ですます調` in Japanese and use direct speech, lile example below
-    * `~する` instead of `~します`
-    * `~できる` instead of `~することができます`
-    * `~参照` instead of `~参照する`, `~参照します`
-    * `~実行` instead of `~実行する`, `~実行します`
+* **[Must]** **Understand the Goal**: At the very beginning of the session, read the `README.md` file in the root directory to understand the main purpose and overview of the repository.
+* **[Must]** **Confirm the Environment**: Check for the existence of a `.devcontainer` directory in the root to confirm that the session is running within the expected containerized environment.
 
-### Markdown rules
+---
 
-* Follow the markdown rules (markdownlint)
-* Appearance of the text in the text editor is not important. Follow the markdown rules.
-* Use `*` for lists
-* Use `1.` for ordered lists continuously
-    * Don't use `2.` after `1.`
-* Add line break after all heading
-* Add line break before and after lists
-* Don't use same heading twice
-* Don't add numbers in headings
-* Add file type for code blocks
-* Add `<` and `>` for URLs
-* Add back quotes for file paths
-* Use `*` for italic text
-* Use `**` for bold text
-* Don't use meanless bold text
-* Don't use meanless headings
-* Add back quotes for code and names
-* Use 4 spaces for tab
-* Add 1 space after list marker and `#` (not 3 spaces)
+## Guiding Principles
 
-### Git rules
+### Interactive Requirement Gathering
 
-* Add prefix below for commit message
-    * `feat:` for new features
-    * `fix:` for bug fixes
-    * `refactor:` for code refactoring including formatting and style changes
-    * `test:` for adding or modifying tests
-    * `docs:` for documentation changes
-    * `chore:` for changes to the build process or auxiliary tools and libraries such as documentation generation
+* **[Must]** When a request for code generation is complex, ambiguous, or lacks specific details, do not generate code immediately.
+* **[Should]** First, initiate a dialogue with the user to clarify the requirements. The goal is to understand:
+  * **The overall objective**: What is the ultimate goal?
+  * **Inputs**: What data will be used (format, source, etc.)?
+  * **Outputs**: What is the expected result (format, content, etc.)?
+  * **Constraints and edge cases**: Are there any special conditions to consider?
 
-### File and folder rules
+### Error Handling Procedure
 
-* Standardize file naming conventions as follows:
-    * Repository meta files: all uppercase (README.md, LICENSE, CONTRIBUTING.md, CHANGELOG.md)
-    * Project documents: Pascal case - first letter of each word capitalized (Setup.md, Workflow.md, LearningRoadmap.md)
-    * Tracking documents: all uppercase with underscores (PROCESS_OVERVIEW.md, VERSION_MAPPING.md)
-* Script file naming conventions:
-    * Use snake case (process_data.py, analyze_results.py)
-    * Start with a verb that represents the function (convert_raw_data.py, calculate_statistics.py)
-* Directory names:
-    * Use singular form and lowercase (script/, data/, report/)
+* **[Must]** When an error occurs, do not immediately provide the corrected code. Instead, follow this interactive process:
+  1.  **Share and Explain**: Present the full error message to the user.
+  2.  **Suggest Causes**: Propose likely causes for the error based on the message and the current context.
+  3.  **Propose a Solution**: After discussing the causes, suggest a specific solution and get the user's agreement before implementing the fix.
+* **[Must]** Show error messages inside a fenced code block with the type `text` and with no truncation.
+* **[Should]** Provide a one-sentence summary in plain text after the error block.
+
+---
+
+## Code Generation Strategy
+
+### Granularity and Interaction
+
+* **[Must]** Generate code at most one function or class per step.
+* **[Must]** After generating each unit, stop and ask for confirmation before continuing.
+* **[Should]** **Scaffolding First**: When generating a new script for the first time, it can be helpful to provide only the skeleton of the code (function/class definitions with placeholders) to agree on the overall structure first.
+
+### Comments and Documentation
+
+* **[Must]** Provide Japanese docstring comments for all functions and classes.
+* **[Should]** Provide inline Japanese comments only for non-trivial or complex logic that is not self-explanatory.
+
+### Code Style
+
+* **[Should]** **Backward Compatibility**: By default, provide clean, modern code that does not prioritize backward compatibility. If you identify a potential need for it, consult with the user to confirm before implementing a compatibility-focused solution.
+
+---
+
+## Technical Rules
+
+### Execution and Git Rules
+
+#### General Execution
+
+* **[Must]** **One-by-one Execution**: Execute all terminal commands one by one. Always check the output of each command for success or errors before proceeding to the next.
+* **[Should]** **Directory Check**: Before running a script, execute the `pwd` command to confirm you are in the correct directory.
+
+#### Git Safety
+
+* **[Must]** Never execute `git add .` or `git add -A` without first running `git diff` and showing the changes to the user for approval.
+* **[Must]** Always show the full commit message proposal to the user and get approval before running `git commit`.
+* **[Must]** Never delete, amend, or squash commits without explicit user instruction.
+* **[Must]** **No Pushing**: Do not push to the remote repository (`git push`).
+
+#### Git Workflow
+
+* **[Should]** **Commit Message Prefixes**: Use the following prefixes for commit messages:
+  * `feat:` for new features.
+  * `fix:` for bug fixes.
+  * `refactor:` for code refactoring.
+  * `test:` for adding or modifying tests.
+  * `docs:` for documentation changes.
+  * `chore:` for build process or auxiliary tool changes.
+* **[Should]** **Pre-commit Testing**: Always test scripts before committing to ensure they work correctly.
+
+### File and Folder Rules
+
+* **[Must]** Do not rename existing files without explicit user instruction.
+* **[Should]** Follow the naming conventions below, but allow flexibility for small, exploratory scripts.
+  * **Repository meta files**: All uppercase (`README.md`, `LICENSE`).
+  * **Project documents**: PascalCase (`Workflow.md`).
+  * **Script files**: snake_case, starting with a verb (`process_data.py`).
+  * **Directory names**: singular form and lowercase (`script/`, `data/`).
+
+### Note Taking
+
+* **[Should]** Append any agreed-upon points or new instructions to the `/notes.tmp` file (create the file if it doesn't exist).
+
+---
+
+## Appendix: Detailed Formatting and Style Guides
+
+### General Text Rules
+
+* **[Should]** Use `,` and `.` for punctuation.
+* **[Should]** Use a direct and concise tone. Avoid overly formal or polite language.
+  * Use imperatives like `run` instead of `you should run`.
+  * Use `can` instead of `it is possible to`.
+  * Use direct verbs like `refer to` or `execute`.
+
+### Markdown Rules
+
+* **[Should]** Follow standard markdown rules (markdownlint).
+* The appearance of text in the text editor is not important; adherence to markdown rules is.
+* Use `*` for unordered lists.
+* Use `1.` for all items in an ordered list (e.g., `1.`, `1.`, `1.`).
+* Add a line break after every heading.
+* Add a line break before and after lists.
+* Do not use the same heading text twice.
+* Do not add numbers in headings.
+* Specify the file type for code blocks.
+* Enclose URLs in angle brackets: `<https://example.com>`.
+* Enclose file paths in backticks: `` `path/to/file.md` ``.
+* Use `*` for *italic* text.
+* Use `**` for **bold** text.
+* Do not use bold text without a clear purpose.
+* Do not use headings without a clear purpose.
+* Enclose code and technical names in backticks.
+* Use 4 spaces for indentation (tab).
+* Use only one space after list markers (`*`, `1.`) and heading markers (`#`).

@@ -3,6 +3,14 @@
 % 独自のスタイルファイルを読み込み
 \usepackage{RSL_style}
 
+% 画像パス設定 (main.texと同階層または上の階層の画像ディレクトリを参照可能にする)
+% これにより，src/main.texから src/にある適当な画像を参照したり，あるいはsrc/../にある画像も参照可能にする
+% ※ 将来的にmain.texをsrc/lualatex/main.tex等に移動した際にも常にsrc/figures/等を参照できるようにするため
+\graphicspath{{./}{../}}
+
+% importパッケージ使用
+\usepackage{import}
+
 % ヘッダー高さを適切に設定
 \setlength{\headheight}{18pt}
 
@@ -40,6 +48,6 @@
 \include{chapters/chapter1}
 
 \bibliographystyle{unsrt} % 参考文献スタイル
-\bibliography{bibliography/reference} % 参考文献リストの表示
+\bibliography{reference} % 参考文献リストの表示
 
 \end{document}

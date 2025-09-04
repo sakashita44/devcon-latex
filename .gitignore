@@ -1,10 +1,16 @@
 # Local environment variables for Dev Container
 /.devcontainer/_base/.env
-latex.config
 main.pdf
 .vscode/
+tmp/
 *.pdf
-diff_output/*
+*.tmp
+*.old
+
+# Build outputs
+out/
+log/
+.config.mk
 
 ## Core latex/pdflatex auxiliary files:
 *.aux

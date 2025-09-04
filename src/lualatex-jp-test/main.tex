@@ -1,0 +1,29 @@
+\documentclass[12pt,a4paper]{ltjsbook}
+\usepackage{../RSL_style}
+
+% 画像パス設定
+\graphicspath{{./}{../}}
+
+\title{日本語版テスト文書}
+\author{テスト}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\chapter{テスト章}
+
+これは日本語版のテスト文書です。
+
+\section{拡張性テスト}
+
+この文書は将来の複数ターゲット対応の実証に使用されます。
+
+% 章ファイル読み込み
+\include{chapters/chapter-example}
+
+% 参考文献
+\bibliographystyle{plain}
+\bibliography{reference}
+
+\end{document}
