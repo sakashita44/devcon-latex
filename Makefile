@@ -74,8 +74,8 @@ help:
 	@echo "  make diff-pdf BASE=v1.0.0 CHANGED=test"
 	@echo "  make diff-pdf BASE=HEAD~1 CHANGED=HEAD"
 	@echo ""
-	@echo "設定ファイル (latex.config) の例:"
-	@echo "  IMAGE_EXTENSIONS=png jpg pdf eps"
+	@echo "設定ファイル (config) の例:"
+	@echo "  IMAGE_EXTENSIONS=(png jpg pdf eps)"
 
 # LaTeX文書ビルド
 build:
