@@ -1,15 +1,15 @@
-# LaTeX-DVC ワークフロー設定ファイル
+# LaTeX差分生成システム設定ファイル
 # このファイルを /config にコピーして使用してください
 
 ### 基本ビルド関係 ###
 # デフォルトのターゲットファイル(make build等でTARGETが指定されない場合に使用)
 DEFAULT_TARGET=src/main.tex
-# latexmkのオプション 指定しない場合は latexmk -cd <TARGET> -r .latexmkrc(ターゲットと同階層か1階層上のもの) で実行される
+# latexmkのオプション 指定しない場合は latexmk -cd <TARGET> -r .latexmkrc(LATEXMKRC_EXPLORATION_RANGEから探索) で実行される
 # 例 コンパイル後に中間ファイルを削除し、出力を抑制
 # LATEXMK_OPTIONS=("-c" "-silent")
 LATEXMK_OPTIONS=()
 # latexpandのオプション（--expand-bblは自動制御されるため指定しないでください）
-LATEXPAND_OPTIONS=()
+LATEXPAND_OPTIONS=("--empty-comments")
 # latexpandで--expand-bblオプションを使用するかどうか（0: 使用しない, 1: 使用する）
 LATEXPAND_EXPAND_BBL=1
 # latexdiffのオプション（日本語対応）
@@ -18,13 +18,6 @@ LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole" "--exc
 # ターゲットのTeXファイルと同じフォルダに.latexmkrcが見つからない場合, 何階層上のフォルダまで.latexmkrcを探しに行くかを指定
 # 例: 3に設定した場合, 最大3階層上のフォルダまで探索する
 LATEXMKRC_EXPLORATION_RANGE=3
-
-### ログ設定（ビルドのメタデータ保存用）###
-# ログ保存ディレクトリ（リポジトリルートに作成されます）
-LOG_DIR=log
-# デフォルトではメタデータのみ保存（1 にすると stdout/stderr も保存）
-LOG_CAPTURE_DEFAULT=1
-LOG_TIMESTAMP_FORMAT=%Y%m%d-%H%M%S
 
 ### 差分生成関係 ###
 # デフォルトのmake diffの出力ディレクトリ(make diffでOUT_DIRが指定されない場合に使用)
@@ -36,28 +29,9 @@ GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
 # 画像差分を出力する拡張子リスト
 IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg)
 
-### DVC関係設定 ###
-# DVC管理対象の画像ファイル拡張子（配列形式）
-# DVC使用時のみ必要、DVC不使用の場合は空配列でOK
-IMAGE_EXTENSIONS=(png jpg jpeg pdf eps svg)
-
-# DVC管理対象ディレクトリ（配列形式）
-# DVC使用時のみ必要、DVC不使用の場合は空配列でOK
-DVC_MANAGED_DIRS=(figures images data)
-
-# DVCリモートストレージ名（DVC使用時のみ設定）
-# DVC不使用の場合はコメントアウトまたは空白のまま
-DVC_REMOTE_NAME=storage
-
-# DVCリモートストレージURL（DVC使用時のみ設定）
-# DVC不使用の場合はコメントアウトまたは空白のまま
-# 使用例:
-# DVC_REMOTE_URL=ssh://user@server/path/to/storage
-# DVC_REMOTE_URL=s3://your-bucket/latex-figures
-# DVC_REMOTE_URL=/path/to/shared/storage
-DVC_REMOTE_URL=/any/tmp/dvc-storage/
-
-# DVC使用の有無について:
-# - DVC不使用: DVC_REMOTE_URLを空白またはコメントアウト
-#   この場合、IMAGE_EXTENSIONSとDVC_MANAGED_DIRSも空白でOK
-# - DVC使用: DVC_REMOTE_URL、DVC_REMOTE_NAME、IMAGE_EXTENSIONS、DVC_MANAGED_DIRSを設定
+### ログ設定（ビルドのメタデータ保存用）###
+# ログ保存ディレクトリ（リポジトリルートに作成されます）
+LOG_DIR=log
+# デフォルトではメタデータのみ保存（1 にすると stdout/stderr も保存）
+LOG_CAPTURE_DEFAULT=0
+LOG_TIMESTAMP_FORMAT=%Y%m%d-%H%M%S

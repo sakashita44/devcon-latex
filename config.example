@@ -11,7 +11,7 @@ LATEXMK_OPTIONS=()
 # latexpandのオプション（--expand-bblは自動制御されるため指定しないでください）
 LATEXPAND_OPTIONS=("--empty-comments")
 # latexpandで--expand-bblオプションを使用するかどうか（0: 使用しない, 1: 使用する）
-LATEXPAND_EXPAND_BBL=0
+LATEXPAND_EXPAND_BBL=1
 # latexdiffのオプション（日本語対応）
 LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole" "--exclude-textcmd=section,subsection,subsubsection")
 # .latexmkrcファイルの探索範囲設定
