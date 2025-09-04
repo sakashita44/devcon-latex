@@ -2,7 +2,7 @@
 
 この開発環境は, 複数のLaTeXエンジンに対応した高品質な論文執筆のためのDev Container環境です.
 
-差分PDFの生成等については [`docs/workflow.md`](docs/workflow.md) や [`docs/README_DiffTool.md`](docs/README_DiffTool.md) を参照してください.
+差分PDFの生成等については [`docs/Workflow.md`](../docs/Workflow.md) や [`docs/README_DiffTool.md`](../docs/README_DiffTool.md) を参照してください.
 
 **初期設定**: Robot Safety Lab（RSL）卒業論文向けに最適化されています.
 
@@ -33,9 +33,11 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
 
 データセットなどをマウントする場合:
 
-1. `.env.example`を`.env`にコピー
+1. `.devcontainer/.env.example`を`.devcontainer/.env`にコピー
 2. `ANY_PATH`を目的のディレクトリパスに変更 (変数名も適宜変更)
 3. `.devcontainer/devcontainer.json`の`mounts`セクションを更新
+
+**重要**: `.devcontainer/.env`ファイルは、内容が空でもコンテナビルドのために必要です。ファイルが存在しない場合、ビルドエラーが発生します。
 
 ```json
 // 例: ANY_PATHを/mnt/any_pathにマウントする
@@ -57,157 +59,45 @@ SSH経由でGitリポジトリを操作する場合は, ホストマシンで以
         * `Build LaTeX project`を展開
         * 任意のレシピを選択してビルド
     * makeコマンドを使用したビルド
-        * `make build`を実行
+        * `make build`を実行（`config`ファイルのデフォルト設定を使用）
+        * `make build TARGET=src/paper.tex`のように実行時に対象ファイルを指定可能
     * 変更を検知した場合の自動ビルド
         * `make watch`を実行 (ターミナルを起動したままにしておく必要があります)
         * ファイル変更を監視して自動ビルド
+        * `make watch TARGET=src/paper.tex`のように実行時に対象ファイルを指定可能
 3. **PDFプレビュー**: VS Code内のタブで表示
 
 ### コードフォーマット
 
+* **フォーマッター**: `latexindent`を使用
+* **設定ファイル**: `.latexindent.yaml`（カスタマイズ可能）
 * **自動フォーマット**: ファイル保存時・ペースト時に自動実行
 * **手動フォーマット**: `Shift+Alt+F` / `Shift+Option+F`
-* **設定ファイル**: `.latexindent.yaml`（カスタマイズ可能）
-* **インデント**: 4スペース（環境・コマンドに応じて自動調整）
 
-#### 表・数式の自動揃え機能
+フォーマット機能により、表・数式の自動整列、インデント調整、改行位置の統一などが自動的に行われます。
 
-* **表の列揃え**: `tabular`、`longtable`等の`&`で列を自動整列
-* **数式揃え**: `align`、`alignat`、`cases`等の`&`で揃え位置を自動調整
-* **行列揃え**: `pmatrix`、`bmatrix`等の要素を自動整列
-* **改行揃え**: `\\`の位置を統一して可読性向上
-
-### 使用エンジンとスタイル
+### ビルドエンジン
 
 * **対応エンジン**: LuaLaTeX, upLaTeX, pdfLaTeX, XeLaTeX等
-* **現在のデフォルト**: LuaLaTeX（RSL卒論用）
-* **スタイルファイル**: `RSL_style.sty`（Robot Safety Lab卒論専用）
+* **設定ファイル**: `.latexmkrc`でエンジンやビルド方法を設定
+* **デフォルト**: LuaLaTeX（RSL卒論用）
 
-### エンジン変更方法
+**注意**: エンジン変更は`.latexmkrc`の設定変更で行います。詳細は [`docs/Configuration_Examples.md`](../docs/Configuration_Examples.md) を参照してください。
 
-他の学会テンプレートを使用する場合:
+### 設定ファイル
 
-#### ステップ1: devcontainer.jsonの設定変更
+プロジェクトの設定は`config`ファイルで管理できます：
 
-`.devcontainer/devcontainer.json`の以下の設定を変更:
+```bash
+# config.exampleをコピーして設定
+cp config.example config
 
-```json
-// upLaTeX使用の場合
-"latex-workshop.latex.tools": [
-    {
-        "name": "uplatex",
-        "command": "uplatex",
-        "args": [
-        "-synctex=1",
-        "-interaction=nonstopmode",
-        "-file-line-error",
-        "%DOC%"
-        ]
-    },
-    {
-        "name": "dvipdfmx",
-        "command": "dvipdfmx",
-        "args": ["%DOCFILE%"]
-    }
-    ],
-    "latex-workshop.latex.recipes": [
-    // "latex-workshop.latex.autoBuild.run": "onSave"で使用されるデフォルトレシピは先頭に記述する
-    {
-        "name": "upLaTeX: uplatex -> dvipdfmx",
-        "tools": ["uplatex", "dvipdfmx"]
-    },
-    // 他のレシピも必要に応じて追加
-    {
-        "name": "upLaTeX - full",
-        "tools": ["uplatex", "bibtex", "uplatex", "dvipdfmx"]
-    }
-    ],
-"latex-workshop.latex.recipe.default": "upLaTeX: uplatex -> dvipdfmx"
+# 設定例
+DEFAULT_TARGET=src/main.tex    # ビルド対象のメインファイル
+DEFAULT_OUT_DIR=out/           # 出力ディレクトリ
 ```
 
-```json
-// pdfLaTeX使用の場合
-"latex-workshop.latex.tools": [
-    {
-        "name": "pdflatex",
-        "command": "pdflatex",
-        "args": [
-        "-synctex=1",
-        "-interaction=nonstopmode",
-        "-file-line-error",
-        "%DOC%"
-        ]
-    }
-],
-"latex-workshop.latex.recipes": [
-    // "latex-workshop.latex.autoBuild.run": "onSave"で使用されるデフォルトレシピは先頭に記述する
-    {
-        "name": "pdfLaTeX",
-        "tools": ["pdflatex"]
-    },
-    // 他のレシピも必要に応じて追加
-    {
-        "name": "pdfLaTeX - full",
-        "tools": ["pdflatex", "bibtex", "pdflatex", "pdflatex"]
-  }
-],
-"latex-workshop.latex.recipe.default": "pdfLaTeX"
-```
-
-#### ステップ2: コンテナの再ビルド
-
-1. コマンドパレット(`Ctrl+Shift+P`)を開く
-2. `Dev Containers: Rebuild Container`を実行
-3. コンテナが再ビルドされるまで待機
-
-#### ステップ3: .latexmkrcの設定変更
-
-`.latexmkrc`ファイルでエンジン固有の設定を変更:
-
-```perl
-# LuaLaTeX用（現在のデフォルト・RSL卒論用）
-$latex = 'lualatex %O -synctex=1 -interaction=nonstopmode %S';
-$bibtex = 'bibtex %O %B';
-$pdf_mode = 4;  # LuaLaTeX
-
-# upLaTeX用
-# $latex = 'uplatex %O -synctex=1 -interaction=nonstopmode %S';
-# $bibtex = 'pbibtex %O %B';
-# $dvipdf = 'dvipdfmx %O -o %D %S';
-# $pdf_mode = 3;  # DVI -> PDF
-
-# pdfLaTeX用
-# $pdflatex = 'pdflatex %O -synctex=1 -interaction=nonstopmode %S';
-# $bibtex = 'bibtex %O %B';
-# $pdf_mode = 1;  # pdfLaTeX
-```
-
-**注意**: `.latexmkrc`の設定は`make build`, `make watch`, `make diff-pdf`コマンドでも使用されます.
-
-#### ステップ4: スタイルファイルとmain.texの変更
-
-1. `RSL_style.sty`を削除または学会指定のスタイルファイルに置き換え
-2. `main.tex`のドキュメントクラスを変更
-3. 必要に応じてパッケージ設定を調整
-
-### ビルドレシピ
-
-* **LuaLaTeX一時ビルド**: `lualatex`のみ（デフォルト・RSL用）
-* **LuaLaTeX完全ビルド**: `lualatex → bibtex → lualatex × 2`
-* **他エンジン**: VS Code設定から変更可能（upLaTeX, pdfLaTeX等）
-
-### ファイル構成
-
-```text
-├── main.tex              # メインファイル（RSL卒論用設定）
-├── RSL_style.sty         # Robot Safety Lab専用スタイル
-├── chapters/             # 章ファイル
-│   ├── title.tex         # タイトルページ
-│   └── chapter1.tex      # 各章
-├── bibliography/         # 参考文献
-│   └── reference.bib     # BibTeXファイル
-└── figures/              # 図表
-```
+詳細な設定方法は [`docs/Configuration_Examples.md`](../docs/Configuration_Examples.md) を参照してください.
 
 ## 文書変換(Pandoc)
 
@@ -215,13 +105,13 @@ LaTeX文書を他の形式に変換可能:
 
 ```bash
 # Markdownに変換
-pandoc main.tex -o output.md
+pandoc src/main.tex -o output.md
 
 # HTMLに変換
-pandoc main.tex -o output.html --standalone
+pandoc src/main.tex -o output.html --standalone
 
 # Word形式に変換
-pandoc main.tex -o output.docx
+pandoc src/main.tex -o output.docx
 ```
 
 ## 環境詳細
@@ -258,60 +148,21 @@ pandoc main.tex -o output.docx
 2. 手動で`latexmk -c`実行
 3. コンテナの再起動
 
-### エンジン変更時の注意
-
-* **upLaTeX使用時**:
-    * `RSL_style.sty`は使用不可（LuaLaTeX専用）
-    * `\usepackage[uplatex]{otf}`等のupLaTeX用パッケージが必要
-    * DVI経由でPDF生成（uplatex → dvipdfmx）
-
-* **pdfLaTeX使用時**:
-    * 日本語処理が制限される
-    * 欧文論文や一部の国際学会向け
-    * 直接PDF生成
-
-* **学会テンプレート使用時**:
-    * 該当するクラスファイル（.cls）とスタイルファイル（.sty）に変更
-    * 学会指定のタイプセット手順に従う
-
-### 代表的な学会テンプレート例
-
-#### IEEE (pdfLaTeX)
-
-```json
-"latex-workshop.latex.recipe.default": "pdfLaTeX"
-```
-
-`main.tex`: `\documentclass[conference]{IEEEtran}`
-
-#### 日本機械学会 (upLaTeX)
-
-```json
-"latex-workshop.latex.recipe.default": "upLaTeX: uplatex -> dvipdfmx"
-```
-
-`main.tex`: `\documentclass{jsme}`
-
-#### ACM (pdfLaTeX)
-
-```json
-"latex-workshop.latex.recipe.default": "pdfLaTeX"
-```
-
-`main.tex`: `\documentclass[sigconf]{acmart}`
-
 ### RSL以外での使用
 
-* `RSL_style.sty`を削除または置き換え
-* `main.tex`のドキュメントクラスを変更
-    * あるいは`main.tex`を学会指定のテンプレートに置き換え
-* 必要に応じてフォント設定を調整
+他のテンプレートや学会フォーマットを使用する場合：
+
+* `.latexmkrc`でビルドエンジンを変更
+* `config`ファイルでデフォルトのビルド対象を変更
+* 必要に応じてスタイルファイルやドキュメントクラスを置き換え
+
+詳細は [`docs/Configuration_Examples.md`](../docs/Configuration_Examples.md) を参照してください。
 
 ### RSL卒論での使用（デフォルト設定）
 
 現在の設定をそのまま使用:
 
-1. `main.tex`を編集
-2. `chapters/`内にコンテンツを追加
-3. `bibliography/reference.bib`に参考文献を記載
+1. `src/main.tex`を編集
+2. `src/chapters/`内にコンテンツを追加
+3. `src/bibliography/reference.bib`に参考文献を記載
 4. ファイル保存で自動ビルド実行
