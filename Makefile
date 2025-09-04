@@ -1,12 +1,17 @@
 # LaTeX論文差分計算用Makefile
 
 # 設定ファイルの読み込み（config を正とする）
-# .config.mk は必須（missing -> make エラー）
+# .config.mk は必須だが、help/validate等の基本コマンドは例外的に動作させる
 $(shell bash ./scripts/gen_config_mk.sh config .config.mk >/dev/null 2>&1 || true)
-ifneq ($(wildcard .config.mk),)
+
+# config存在確認とロード
+CONFIG_LOADED := $(if $(wildcard .config.mk),true,false)
+ifeq ($(CONFIG_LOADED),true)
 include .config.mk
 else
-$(error Missing .config.mk; generate it with: ./scripts/gen_config_mk.sh config .config.mk)
+# config未生成時の最小デフォルト（help/validate用）
+DEFAULT_TARGET ?= src/main.tex
+DEFAULT_OUT_DIR ?= out/
 endif
 
 # デフォルト設定（不足キーは .config.mk 側で定義されることを想定）
@@ -77,15 +82,26 @@ help:
 	@echo "設定ファイル (config) の例:"
 	@echo "  IMAGE_EXTENSIONS=(png jpg pdf eps)"
 
+# 設定チェック（config必須のターゲット用）
+check-config:
+	@if [ "$(CONFIG_LOADED)" != "true" ]; then \
+		echo "Error: Missing config setup. Please run:"; \
+		echo "  cp config.example config"; \
+		echo "  # Edit config as needed"; \
+		echo "  ./scripts/gen_config_mk.sh config .config.mk"; \
+		exit 1; \
+	fi
+	@echo "✓ Config loaded successfully"
+
 # LaTeX文書ビルド
-build:
+build: check-config
 	@echo "LaTeX文書をビルド中..."
 	@echo "ターゲット: $(TARGET)"
 	@./scripts/build/build.sh build "$(TARGET)"
 	@echo "ビルド完了"
 
 # バリデーション付きビルド
-build-safe:
+build-safe: check-config
 	@echo "=== 安全ビルド（バリデーション付き） ==="
 	@echo "ターゲット: $(TARGET)"
 	@$(MAKE) validate TARGET="$(TARGET)"
@@ -94,29 +110,29 @@ build-safe:
 	@echo "安全ビルド完了"
 
 # ファイル変更監視ビルド
-watch:
+watch: check-config
 	@echo "ファイル変更監視モード開始..."
 	@echo "ターゲット: $(TARGET)"
 	@echo "Ctrl+C で停止"
 	@./scripts/build/build.sh watch "$(TARGET)"
 
 # 差分生成
-diff:
+diff: check-config
 	@echo "差分生成 (all): TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
 	@MODE=all bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 差分PDF生成
-diff-pdf:
+diff-pdf: check-config
 	@echo "差分PDF生成: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
 	@MODE=pdf bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 変更済み画像の出力
-diff-images:
+diff-images: check-config
 	@echo "変更済み画像出力: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
 	@MODE=images bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
 # 拡張子差分生成
-diff-ext:
+diff-ext: check-config
 	@echo "拡張子差分生成: TARGET_BASE=$(TARGET_BASE) TARGET_CHANGED=$(TARGET_CHANGED) | 差分: $(RESOLVED_BASE) -> $(RESOLVED_CHANGED) | OUT=$(OUT)"
 	@MODE=ext bash ./scripts/diff/main.sh "$(TARGET_BASE)" "$(TARGET_CHANGED)" "$(RESOLVED_BASE)" "$(RESOLVED_CHANGED)" "$(OUT)"
 
@@ -133,7 +149,7 @@ add-tag:
 	echo "タグ '$$tag_name' を作成しました"
 
 # クリーンアップ
-clean:
+clean: check-config
 	@echo "出力ファイルをクリーンアップ中..."
 	@echo "ターゲット: $(TARGET)"
 	@./scripts/build/build.sh clean "$(TARGET)"

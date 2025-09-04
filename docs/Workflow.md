@@ -107,6 +107,22 @@ make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0 TARGET_BASE=src/main.tex TARGET_CHANGED
 - `TARGET_BASE`, `TARGET_CHANGED`: 省略可能。デフォルトは`config`の`DEFAULT_TARGET`
 - `OUT`: 省略可能。デフォルトは`config`の`DEFAULT_OUT_DIR`
 
+**ターゲットファイルパスが異なる場合:**
+
+プロジェクト構造の変更により、比較する両リビジョンで対象ファイルのパスが異なる場合は、明示的に指定してください：
+
+```bash
+# 例1: v1.0.0では main.tex、v2.0.0では lualatex-jp-test/main.tex を比較
+make diff-pdf BASE=v1.0.0 CHANGED=v2.0.0 \
+  TARGET_BASE=src/main.tex \
+  TARGET_CHANGED=src/lualatex-jp-test/main.tex
+
+# 例2: 旧バージョンが別ディレクトリ構成だった場合
+make diff-pdf BASE=v0.9.0 CHANGED=v1.0.0 \
+  TARGET_BASE=main.tex \
+  TARGET_CHANGED=src/main.tex
+```
+
 ### 6. レビューと修正
 
 1. 生成されたPDF差分をレビューアーに提供

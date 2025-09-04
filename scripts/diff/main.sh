@@ -212,11 +212,26 @@ update_metadata_phase "restore" "ok" "$(date -Iseconds)"
 
 # === 8. TARGET系の存在検証（即時） ===
 echo "=== Verifying target files ==="
-if [ ! -f "$BASE_REPO_PATH/$TARGET_BASE" ] || [ ! -f "$CHANGED_REPO_PATH/$TARGET_CHANGED" ]; then
-    update_metadata_phase "pdf" "fail" "" "target-not-found"
+
+# BASE側のファイル存在確認
+if [ ! -f "$BASE_REPO_PATH/$TARGET_BASE" ]; then
+    error_msg="BASE target not found: $TARGET_BASE in revision $BASE (searched: $BASE_REPO_PATH/$TARGET_BASE)"
+    echo "Error: $error_msg" >&2
+    update_metadata_phase "pdf" "fail" "$(date -Iseconds)" "$error_msg"
     update_metadata_status "error"
     exit 2
 fi
+
+# CHANGED側のファイル存在確認
+if [ ! -f "$CHANGED_REPO_PATH/$TARGET_CHANGED" ]; then
+    error_msg="CHANGED target not found: $TARGET_CHANGED in revision $CHANGED (searched: $CHANGED_REPO_PATH/$TARGET_CHANGED)"
+    echo "Error: $error_msg" >&2
+    update_metadata_phase "pdf" "fail" "$(date -Iseconds)" "$error_msg"
+    update_metadata_status "error"
+    exit 2
+fi
+
+echo "✓ Target files verified: BASE=$TARGET_BASE, CHANGED=$TARGET_CHANGED"
 
 # === 9. 差分フェーズの逐次実行 ===
 OVERALL_STATUS="ok"
