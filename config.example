@@ -1,4 +1,4 @@
-# LaTeX-DVC ワークフロー設定ファイル
+# LaTeX差分生成システム設定ファイル
 # このファイルを /config にコピーして使用してください
 
 ### 基本ビルド関係 ###
@@ -28,32 +28,6 @@ KEEP_TMP_DIR=0
 GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
 # 画像差分を出力する拡張子リスト
 IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg)
-
-### DVC関係設定 ###
-# DVC管理対象の画像ファイル拡張子（配列形式）
-# DVC使用時のみ必要、DVC不使用の場合は空配列でOK
-IMAGE_EXTENSIONS=(png jpg jpeg pdf eps svg)
-
-# DVC管理対象ディレクトリ（配列形式）
-# DVC使用時のみ必要、DVC不使用の場合は空配列でOK
-DVC_MANAGED_DIRS=(figures images data)
-
-# DVCリモートストレージ名（DVC使用時のみ設定）
-# DVC不使用の場合はコメントアウトまたは空白のまま
-DVC_REMOTE_NAME=storage
-
-# DVCリモートストレージURL（DVC使用時のみ設定）
-# DVC不使用の場合はコメントアウトまたは空白のまま
-# 使用例:
-# DVC_REMOTE_URL=ssh://user@server/path/to/storage
-# DVC_REMOTE_URL=s3://your-bucket/latex-figures
-# DVC_REMOTE_URL=/path/to/shared/storage
-DVC_REMOTE_URL=
-
-# DVC使用の有無について:
-# - DVC不使用: DVC_REMOTE_URLを空白またはコメントアウト
-#   この場合、IMAGE_EXTENSIONSとDVC_MANAGED_DIRSも空白でOK
-# - DVC使用: DVC_REMOTE_URL、DVC_REMOTE_NAME、IMAGE_EXTENSIONS、DVC_MANAGED_DIRSを設定
 
 ### ログ設定（ビルドのメタデータ保存用）###
 # ログ保存ディレクトリ（リポジトリルートに作成されます）
