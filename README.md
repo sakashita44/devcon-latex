@@ -31,7 +31,7 @@ VS Code + Dev ContainerベースのLaTeX論文執筆環境です. TeX Live 2023�
 * その他拡張機能: LTeX (文法チェック), Pandoc (文書変換) を搭載
 * Git, DVCによるバージョン管理に対応
 * 差分可視化ツール搭載
-    * latexdiffの
+    * latexdiffを含む各種スクリプトの実行を自動化(make経由で実行)
 
 ### 日本語卒論用テンプレート
 
