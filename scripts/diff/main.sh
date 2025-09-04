@@ -32,7 +32,7 @@ update_metadata_phase() {
     if [ -n "$error_message" ]; then
         echo "  Error: $error_message" >&2
     fi
-    
+
     # JSONファイル更新
     if [ -f "$DIFF_OUT_DIR/metadata.json" ]; then
         if command -v jq >/dev/null 2>&1; then
@@ -54,7 +54,7 @@ update_metadata_phase() {
 update_metadata_status() {
     local status=$1
     echo "Updating overall status: $status" >&2
-    
+
     # JSONファイル更新
     if [ -f "$DIFF_OUT_DIR/metadata.json" ]; then
         if command -v jq >/dev/null 2>&1; then
