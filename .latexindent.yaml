@@ -12,6 +12,7 @@ indentPreamble: 1
 # 行末の不要な空白を自動で削除する
 removeTrailingWhitespace:
   beforeProcessing: 1
+  afterProcessing: 1
 # 独立した行にあるコメントを、周囲のコードと同じレベルにインデントする
 indentFirstLineComments: 1
 
@@ -19,11 +20,6 @@ indentFirstLineComments: 1
 # 改行の調整 (バージョン管理との親和性向上)
 # ------------------------------------------------------------------
 modifyLineBreaks:
-  # 1行1文にすることで、Gitの差分（diff）を読みやすくする
-  oneSentencePerLine:
-    manipulateSentences: 1
-    sentencesFollow:
-      - "sentence"
   # 環境（\begin{} ... \end{}）の開始・終了を独立した行にする
   environments:
     BeginStartsOnOwnLine: 1
@@ -102,16 +98,13 @@ substitutions:
     r: "$1"
 
 # ------------------------------------------------------------------
-# コード折りたたみ支援
+# 文字置換設定
 # ------------------------------------------------------------------
-addContinuationIndentation:
-  # このリストにある環境の前後にコメントを自動挿入する
-  environments:
-    figure: 1
-    figure*: 1
-    table: 1
-    table*: 1
-    tikzpicture: 1
+replacements:
+  - this: "、"
+    that: "，"
+  - this: "。"
+    that: "．"
 
 # ------------------------------------------------------------------
 # 特殊な環境の定義

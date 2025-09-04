@@ -69,6 +69,8 @@
         "latex-workshop.view.pdf.viewer": "tab",
         "latex-workshop.formatting.latex": "latexindent",
         "latex-workshop.formatting.latexindent.args": [
+          "-r", // replace機能を有効化
+          "-m", // modifyLineBreaks機能を有効化
           "%TMPFILE%",
           "-c=%DIR%/",
           "-l=%WORKSPACE_FOLDER%/.latexindent.yaml"
