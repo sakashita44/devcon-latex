@@ -1,445 +1,404 @@
-# 設定例とベストプラクティス
+# 設定例とカスタマイズガイド
 
-## このドキュメントについて
+このドキュメントでは、LaTeX論文執筆プロジェクトの設定ファイルの詳細と、様々な環境での設定例を説明します。
 
-このドキュメントは，`latex.config`ファイルの設定例を提供します．以下のワークフローと併せて利用してください:
+## 設定ファイルの概要
 
-* **基本的な論文執筆**: [`workflow.md`](workflow.md) - 基本ワークフローを先に確認
-* **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - DVCで画像などを管理する場合の設定例
-* **差分ツール**: [`README_DiffTool.md`](README_DiffTool.md) - 差分生成の詳細設定
+### 設定ファイルの構成
 
-## 使い方の流れ
+このプロジェクトでは以下の設定ファイルを使用します：
 
-1. 自分の環境に合う設定例を選択
-2. `latex.config`ファイルを作成・編集
-3. 対応するワークフローを実行
-4. 必要に応じてカスタマイズ
+- `config`: メインの設定ファイル（`config.example`をコピーして作成）
+- `src/.latexmkrc`: LaTeXビルド設定
+- `.latexindent.yaml`: LaTeX自動整形設定（オプション）
 
-## 一般的な設定例
+## config ファイル詳細解説
 
-### シンプルな論文執筆（DVC不使用）
+### 基本ビルド設定
 
-**適用場面**: [`workflow.md`](workflow.md)の基本ワークフロー（DVC機能なし）
+#### DEFAULT_TARGET
 
 ```bash
-# latex.config
-MAIN_TEX=main.tex
-# DVC関連設定（すべて空白でOK）
-IMAGE_EXTENSIONS=
-DVC_MANAGED_DIRS=
-DVC_REMOTE_NAME=
-DVC_REMOTE_URL=
-LATEX_ENGINE=lualatex
-ENABLE_LATEXINDENT=true
+DEFAULT_TARGET=src/main.tex
 ```
 
-この設定では：
+- **用途**: `make build` 等でTARGETが指定されない場合に使用される
+- **設定例**:
+    - RSL卒論: `DEFAULT_TARGET=src/main.tex`
+    - ルート配置: `DEFAULT_TARGET=main.tex`
+    - 複数文書: `DEFAULT_TARGET=paper1/main.tex`
 
-* 画像ファイルは通常のGit管理
-* DVC関連コマンド（`make dvc-init`等）は使用しない
-* 基本的なLaTeX機能のみ利用
-
-### 基本的なラボ環境
-
-**適用場面**: [`workflow.md`](workflow.md)の基本ワークフロー + 少量のDVC使用
+#### LATEXMK_OPTIONS
 
 ```bash
-# latex.config
-MAIN_TEX=main.tex
-DVC_MANAGED_DIRS=figures
-IMAGE_EXTENSIONS=png jpg pdf
-DVC_REMOTE_NAME=lab-storage
-DVC_REMOTE_URL=ssh://user@lab-server/storage/latex-projects
-LATEX_ENGINE=lualatex
-ENABLE_LATEXINDENT=true
+LATEXMK_OPTIONS=()
 ```
 
-### 大規模プロジェクト
+- **用途**: latexmk実行時のオプション（配列形式）
+- **デフォルト**: 空配列（`.latexmkrc`の設定を使用）
+- **設定例**:
 
-**適用場面**: [`DVC_Workflow.md`](DVC_Workflow.md)の完全DVC統合ワークフロー
+  ```bash
+  # 中間ファイル削除と出力抑制
+  LATEXMK_OPTIONS=("-c" "-silent")
+
+  # 強制再ビルド
+  LATEXMK_OPTIONS=("-gg")
+
+  # インタラクション無効
+  LATEXMK_OPTIONS=("-interaction=nonstopmode")
+  ```
+
+#### LATEXPAND_OPTIONS
 
 ```bash
-# latex.config
-MAIN_TEX=dissertation.tex
-DVC_MANAGED_DIRS=figures images data plots results
-IMAGE_EXTENSIONS=png jpg jpeg pdf eps svg tiff
-DVC_REMOTE_NAME=cloud-storage
-DVC_REMOTE_URL=s3://research-bucket/dissertation-data
-LATEX_ENGINE=lualatex
-BIBTEX_ENGINE=biber
+LATEXPAND_OPTIONS=("--empty-comments")
 ```
 
-### 画像管理方法の選択
+- **用途**: latexpand実行時のオプション（配列形式）
+- **注意**: `--expand-bbl`は自動制御されるため指定不要
+- **設定例**:
 
-**適用場面**: [`DVC_Workflow.md`](DVC_Workflow.md)の画像管理最適化ワークフロー
+  ```bash
+  # 基本設定
+  LATEXPAND_OPTIONS=("--empty-comments")
+
+  # usepackageも展開
+  LATEXPAND_OPTIONS=("--expand-usepackage" "--empty-comments")
+
+  # より詳細な展開
+  LATEXPAND_OPTIONS=("--expand-usepackage" "--expand-bbl" "--empty-comments")
+  ```
+
+#### LATEXPAND_EXPAND_BBL
 
 ```bash
-# latex.config
-MAIN_TEX=paper.tex
-DVC_MANAGED_DIRS=figures
-IMAGE_EXTENSIONS=png jpg pdf eps
-DVC_REMOTE_NAME=storage
-DVC_REMOTE_URL=ssh://user@server/paper-images
-
-# .dvc-exclude に追加するファイル例（Git管理に変更）
-# figures/logo.png          # 10KB, 年1回変更
-# figures/template.jpg      # 50KB, 初回作成後変更なし
-# figures/diagram-base.pdf  # 100KB, 完成済み静的図表
+LATEXPAND_EXPAND_BBL=0
 ```
 
-## ワークフロー例
+- **用途**: `--expand-bbl`オプションの使用制御
+- **値**: `0`（使用しない）または `1`（使用する）
+- **推奨**: 参考文献の差分精度向上のため `1` を推奨
 
-### 論文執筆開始時
+#### LATEXDIFF_OPTIONS
 
 ```bash
-# 1. 環境セットアップ
-cp latex.config.example latex.config
-# latex.config を編集
-
-# 2. DVC初期化
-make dvc-init
-
-# 3. リモート設定
-make dvc-remote-add NAME=storage URL=ssh://user@server/path
-
-# 4. 初期状態確認
-make validate
+LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole" "--exclude-textcmd=section,subsection,subsubsection")
 ```
 
-### 日常的な作業
+- **用途**: latexdiff実行時のオプション（配列形式）
+- **設定例**:
+
+  ```bash
+  # 日本語対応基本設定
+  LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8")
+
+  # 数式対応強化
+  LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole")
+
+  # セクション除外
+  LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--exclude-textcmd=section,subsection,subsubsection")
+
+  # 保守的設定（複雑な文書用）
+  LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=off")
+  ```
+
+#### LATEXMKRC_EXPLORATION_RANGE
 
 ```bash
-# 新しい画像追加時
-make dvc-add-images
-
-# リモートに保存
-make dvc-push
-
-# 他の環境での作業開始時
-make dvc-pull
-
-# 現在の状況確認
-make show-image-status
+LATEXMKRC_EXPLORATION_RANGE=3
 ```
 
-### 共同研究者との共有
+- **用途**: `.latexmkrc`ファイルの探索範囲（階層数）
+- **動作**: ターゲットファイルから上位何階層まで`.latexmkrc`を探索するか
+- **推奨値**: `3`（通常のプロジェクト構造に対応）
+
+### 差分生成設定
+
+#### DEFAULT_OUT_DIR
 
 ```bash
-# 1. Git リポジトリ共有（通常通り）
-git clone <repository-url>
-cd <project>
-
-# 2. 設定ファイル作成（各自の環境に合わせて）
-cp latex.config.example latex.config
-# 設定を編集
-
-# 3. DVC データ取得
-make dvc-pull
-
-# 4. 環境確認
-make validate
+DEFAULT_OUT_DIR=out/
 ```
 
-### 論文投稿・画像管理最適化時
+- **用途**: `make diff`でOUT_DIRが指定されない場合の出力先
+- **設定例**:
+    - 標準: `DEFAULT_OUT_DIR=out/`
+    - カスタム: `DEFAULT_OUT_DIR=diff_output/`
+    - 絶対パス: `DEFAULT_OUT_DIR=/tmp/diff/`
+
+#### KEEP_TMP_DIR
 
 ```bash
-# 1. 小容量かつ変更頻度低の画像をGit管理に変更
-make dvc-exclude-image FILE=figures/small-logo.png
-
-# 2. 静的テンプレート画像をGit管理に変更
-make dvc-restore-file FILE=figures/template.png
-
-# 3. 管理状況確認
-make show-image-status
-
-# 4. 最適化された管理状態で運用
-# Git管理: 小容量 + 変更頻度低
-# DVC管理: 大容量 or 変更頻度高 or 全体量大
+KEEP_TMP_DIR=0
 ```
 
-## ストレージ設定例
+- **用途**: `make diff`で使用される一時ディレクトリの保持設定（デバッグ用）
+- **値**: `0`（削除）または `1`（保持）
+- **使用場面**: latexdiff失敗時の手動調整で `1` に設定
 
-### SSH接続
+#### GIT_DIFF_EXTENSIONS
 
 ```bash
-# SSH鍵認証設定済みの場合
-DVC_REMOTE_URL=ssh://username@server.example.com/path/to/storage
-
-# ポート指定
-DVC_REMOTE_URL=ssh://username@server.example.com:2222/path/to/storage
+GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
 ```
 
-### Amazon S3
+- **用途**: Git差分出力対象の拡張子リスト
+- **設定例**:
+
+  ```bash
+  # 基本設定
+  GIT_DIFF_EXTENSIONS=(tex sty cls bib bst)
+
+  # 追加拡張子
+  GIT_DIFF_EXTENSIONS=(tex sty cls bib bst tikz def)
+
+  # 最小設定
+  GIT_DIFF_EXTENSIONS=(tex bib)
+  ```
+
+#### IMAGE_DIFF_EXTENSIONS
 
 ```bash
-# 基本設定
-DVC_REMOTE_URL=s3://bucket-name/project-folder
-
-# リージョン指定が必要な場合
-# dvc remote modify storage region us-west-2
+IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg)
 ```
 
-### Google Drive
+- **用途**: 画像差分検出対象の拡張子リスト
+- **設定例**:
+
+  ```bash
+  # 基本設定
+  IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg)
+
+  # 追加形式
+  IMAGE_DIFF_EXTENSIONS=(png jpg jpeg pdf eps svg tiff bmp gif)
+
+  # ベクター形式のみ
+  IMAGE_DIFF_EXTENSIONS=(pdf eps svg)
+  ```
+
+### ログ設定
+
+#### LOG_DIR
 
 ```bash
-# Google Drive フォルダID使用
-DVC_REMOTE_URL=gdrive://1BxWjKRjCk_XYZ...folder-id
-
-# 認証設定が別途必要
-# dvc remote modify storage gdrive_acknowledge_abuse true
+LOG_DIR=log
 ```
 
-### ローカルネットワークストレージ
+- **用途**: ログ保存ディレクトリ（リポジトリルートに作成）
+- **設定例**:
+    - 標準: `LOG_DIR=log`
+    - 隠しディレクトリ: `LOG_DIR=.logs`
+
+#### LOG_CAPTURE_DEFAULT
 
 ```bash
-# NAS等
-DVC_REMOTE_URL=/mnt/shared/latex-projects
-
-# ネットワークドライブ（Windows）
-DVC_REMOTE_URL=Z:/shared/latex-projects
+LOG_CAPTURE_DEFAULT=0
 ```
 
-## チーム開発のベストプラクティス
+- **用途**: stdout/stderrキャプチャの有効化
+- **値**: `0`（メタデータのみ）または `1`（全出力保存）
 
-### 1. 設定ファイル管理
-
-* `latex.config.example` を適切に維持
-* 各メンバーは個人用 `latex.config` を作成
-* 共通設定は example ファイルで管理
-
-### 2. 画像ファイル命名規則
+#### LOG_TIMESTAMP_FORMAT
 
 ```bash
-# 推奨命名規則
-figures/
-├── 01-introduction/          # 使用先のtexファイル名をディレクトリ名に
-│   ├── overview.png          # 概要図
-│   └── research-flow.pdf     # 研究フロー
-├── 02-method/
-│   ├── algorithm.png         # アルゴリズム
-│   └── architecture.pdf      # システム構成
-└── shared/
-    ├── logo.png              # ロゴ（公開OK）
-    └── template.pdf          # テンプレート（公開OK）
+LOG_TIMESTAMP_FORMAT=%Y%m%d-%H%M%S
 ```
 
-### 3. 画像管理の最適化
+- **用途**: ログファイルのタイムスタンプ形式
+- **形式**: strftime形式
+- **設定例**:
+
+  ```bash
+  # 標準形式
+  LOG_TIMESTAMP_FORMAT=%Y%m%d-%H%M%S
+
+  # ISO形式
+  LOG_TIMESTAMP_FORMAT=%Y-%m-%dT%H:%M:%S
+
+  # 簡易形式
+  LOG_TIMESTAMP_FORMAT=%m%d_%H%M
+  ```
+
+## .latexmkrc ファイル詳細解説
+
+### .latexmkrc基本構造
+
+```perl
+# 出力ディレクトリをout/に設定
+$out_dir = '../out';
+
+# LuaLaTeX設定
+$pdf_mode = 4;  # LuaLaTeX
+$lualatex = 'lualatex -interaction=nonstopmode %O %S';
+$bibtex_use = 2;
+$max_repeat = 5;  # 最大繰り返し回数
+
+# BibTeX設定
+$ENV{'BIBINPUTS'} = './bibliography/:' . ($ENV{'BIBINPUTS'} || '');
+
+# クリーンアップ対象
+$clean_ext = "aux bbl blg fdb_latexmk fls log nav out snm toc";
+```
+
+### エンジン別設定例
+
+#### LuaLaTeX（推奨）
+
+```perl
+$pdf_mode = 4;
+$lualatex = 'lualatex -interaction=nonstopmode %O %S';
+$bibtex_use = 2;
+```
+
+- **用途**: 日本語対応、現代的なフォント処理
+- **対応**: 日本語論文、複雑な図表
+
+#### pdfLaTeX
+
+```perl
+$pdf_mode = 1;
+$pdflatex = 'pdflatex -interaction=nonstopmode %O %S';
+$bibtex_use = 2;
+```
+
+- **用途**: 英語論文、軽量処理
+- **対応**: IEEE、ACM、Springer等のテンプレート
+
+#### upLaTeX
+
+```perl
+$pdf_mode = 3;
+$latex = 'uplatex -interaction=nonstopmode %O %S';
+$dvipdf = 'dvipdfmx %O -o %D %S';
+$bibtex_use = 2;
+```
+
+- **用途**: 日本語学会テンプレート
+- **対応**: 情報処理学会、電子情報通信学会等
+
+#### XeLaTeX
+
+```perl
+$pdf_mode = 5;
+$xelatex = 'xelatex -interaction=nonstopmode %O %S';
+$bibtex_use = 2;
+```
+
+- **用途**: 多言語対応、システムフォント使用
+- **対応**: 多言語論文、特殊フォント要求
+
+### 出力ディレクトリ設定
+
+```perl
+# src/構造の場合
+$out_dir = '../out';
+
+# ルート配置の場合
+$out_dir = './out';
+
+# 絶対パス指定
+$out_dir = '/tmp/latex_output';
+```
+
+### BibTeX設定
+
+```perl
+# 標準設定
+$bibtex_use = 2;
+
+# BibTeX無効
+$bibtex_use = 0;
+
+# 検索パス設定
+$ENV{'BIBINPUTS'} = './bibliography/:./refs/:' . ($ENV{'BIBINPUTS'} || '');
+```
+
+### クリーンアップ設定
+
+```perl
+# 基本クリーンアップ
+$clean_ext = "aux bbl blg fdb_latexmk fls log";
+
+# 詳細クリーンアップ
+$clean_ext = "aux bbl blg fdb_latexmk fls log nav out snm toc synctex.gz run.xml";
+
+# 最小クリーンアップ
+$clean_ext = "aux log";
+```
+
+## 環境別設定例
+
+### RSL卒論環境
 
 ```bash
-# チーム共通の管理方針設定
-# 以下を .dvc-exclude に追加（Git管理に変更）
-figures/shared/logo.png          # 10KB, 年1回変更
-figures/shared/template.pdf      # 50KB, 静的テンプレート
-figures/shared/icon.png          # 5KB, 変更なし
-
-# 以下はDVC管理を継続（デフォルト）
-# - 変更頻度高: 実験結果ファイル
-# - 大容量: 高解像度画像
-# - 量が多: 大量の図表ファイル
+# config
+DEFAULT_TARGET=src/main.tex
+DEFAULT_OUT_DIR=out/
+LATEXMK_OPTIONS=()
+LATEXPAND_OPTIONS=("--empty-comments")
+LATEXPAND_EXPAND_BBL=1
+LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=whole")
 ```
 
-### 4. データバックアップ
+```perl
+# src/.latexmkrc
+$out_dir = '../out';
+$pdf_mode = 4;
+$lualatex = 'lualatex -interaction=nonstopmode %O %S';
+$bibtex_use = 2;
+$ENV{'BIBINPUTS'} = './bibliography/:' . ($ENV{'BIBINPUTS'} || '');
+```
+
+## トラブルシューティング設定
+
+### latexdiff失敗時の対応
 
 ```bash
-# 定期的なプッシュ
-make dvc-push
-
-# 重要なマイルストーン時
-git tag -a v1.0 -m "First complete draft"
-make dvc-push
-git push origin v1.0
+# config（デバッグ用）
+KEEP_TMP_DIR=1
+LATEXDIFF_OPTIONS=("--type=CFONT" "--encoding=utf8" "--math-markup=off")
 ```
 
-## トラブルシューティング
+## ベストプラクティス
 
-### DVC関連
+### 設定ファイル管理
 
-#### ロックファイルエラー
+1. **バージョン管理**: 環境変数を使用していないため、`config`ファイルもGit管理して共有することを推奨
+2. **テンプレート管理**: `config.example`は設定例として保持し、初期設定の参考にする
+3. **相対パス使用**: 絶対パスではなく相対パスを使用してポータビリティを確保
+4. **設定の統一**: チーム開発では統一された設定を使用して環境の違いを最小化
 
-```bash
-# DVCロック削除
-rm .dvc/tmp/lock
+### パフォーマンス最適化
 
-# または強制実行
-dvc add figures/image.png --force
-```
+1. **差分対象の絞り込み**: 不要な拡張子を除外
+2. **ログレベル調整**: 本番では`LOG_CAPTURE_DEFAULT=0`
+3. **一時ファイル管理**: `KEEP_TMP_DIR=0`で自動削除
 
-#### 認証エラー
+### セキュリティ考慮
 
-```bash
-# SSH鍵確認
-ssh-add -l
+1. **出力先の制限**: システムディレクトリへの出力を避ける
+2. **コマンド制限**: 危険なlatexmkオプションの使用を避ける
+3. **パス検証**: 相対パスの使用を推奨
 
-# 接続テスト
-make dvc-remote-test
+## 設定変更時のチェックリスト
 
-# 認証情報再設定
-ssh-keygen -t rsa -b 4096 -C "your-email@example.com"
-```
+### config変更後
 
-#### 容量エラー
+- [ ] `make validate`でエラーチェック
+- [ ] `make build`でビルド確認
+- [ ] 差分生成テスト実行
 
-```bash
-# キャッシュクリーンアップ
-dvc cache dir
-dvc gc --workspace
+### .latexmkrc変更後
 
-# 古いバージョン削除
-dvc cache size
-dvc gc --cloud
-```
+- [ ] コンテナ再起動
+- [ ] VS Code設定確認
+- [ ] フォント設定確認
+- [ ] ビルド成功確認
 
-### LaTeX関連
+### 設定ファイル共有時
 
-#### ビルドエラー
-
-```bash
-# 依存関係確認
-make validate-latex
-
-# キャッシュクリア
-make clean
-make build
-
-# 詳細エラー確認
-latexmk -pdf -verbose main.tex
-```
-
-#### 画像参照エラー
-
-```bash
-# 画像ファイル確認
-make show-image-status
-
-# DVCファイル復元
-make dvc-pull
-
-# 特定画像復元
-dvc checkout figures/missing-image.png
-```
-
-## セキュリティ考慮事項
-
-### 1. 認証情報管理
-
-* SSH鍵は適切に管理
-* AWS認証情報は環境変数で設定
-* パスワードをコミットしない
-
-### 2. 管理方針に基づくファイル分類
-
-* **Git管理対象**: 小容量ファイル（1MB未満），変更頻度の低いファイル
-* **DVC管理対象**: 大容量ファイル（1MB以上），頻繁に変更されるファイル
-* **パフォーマンス最適化**: ファイルサイズと変更頻度による適切な管理方法選択
-
-### 3. アクセス制御
-
-* チームメンバーのみアクセス可能な設定
-* 定期的なアクセス権限見直し
-* ログ監視の実装
-
-## 画像管理方法の判断基準
-
-### Git管理を選択する場合
-
-以下の **すべて** に該当するファイル:
-
-* ファイルサイズが小さい (1MB未満)
-* 変更頻度が低い (月1回未満)
-* チーム全体で頻繁にアクセス
-
-### DVC管理を選択する場合
-
-以下の **いずれか** に該当する場合:
-
-* 変更頻度が高い
-* ファイルサイズが大きい (1MB以上)
-* 画像ファイル全体の容量が大きい (100MB以上)
-
-### 実用例
-
-```bash
-# Git管理の例
-figures/logo.png          # 10KB, 年1回変更
-figures/university.png    # 50KB, 変更なし
-figures/template.pdf      # 100KB, 初回作成後変更なし
-
-# DVC管理の例 (デフォルト)
-figures/experiment-*.png  # 500KB, 実験のたびに更新
-figures/hires-photo.jpg   # 5MB, 高解像度写真
-figures/simulation/*.png  # 各100KB x 200ファイル = 20MB
-```
-
-### ファイルサイズによる分類
-
-```bash
-# 1MB未満かつ変更頻度低 → Git管理
-make dvc-exclude-image FILE=figures/small-logo.png
-
-# 1MB以上 or 変更頻度高 → DVC管理推奨（デフォルト）
-# 自動的にDVC管理される
-```
-
-### 変更頻度による分類
-
-```bash
-# 小サイズかつ変更頻度低 → Git管理
-make dvc-exclude-image FILE=figures/static-diagram.png
-
-# 変更頻度高 or 大容量 → DVC管理
-# 実験結果や大容量ファイルはDVC管理を継続
-```
-
-### チーム共有の考慮
-
-```bash
-# 小サイズかつアクセス頻度高かつ変更頻度低 → Git管理
-make dvc-exclude-image FILE=figures/team-logo.png
-
-# 専門的な図表やデータ → DVC管理
-# 大容量または頻繁変更ファイルはDVC管理
-```
-
-## パフォーマンス最適化
-
-### 1. ファイルサイズ管理
-
-```bash
-# 大容量ファイル確認
-find figures -type f -size +10M
-
-# 圧縮設定
-# 画像は適切な解像度に調整
-# PDFは最適化済みを使用
-```
-
-### 2. ネットワーク最適化
-
-```bash
-# 並列アップロード設定
-dvc remote modify storage jobs 4
-
-# 部分同期
-dvc push figures/chapter1/
-```
-
-### 3. キャッシュ管理
-
-```bash
-# キャッシュサイズ確認
-dvc cache size
-
-# 定期的なクリーンアップ
-dvc gc --workspace --cloud
-```
-
-## 関連ドキュメント
-
-設定完了後は，以下のワークフローを参照して実際の作業を開始してください:
-
-* **基本的な論文執筆**: [`workflow.md`](workflow.md) - 標準的なワークフロー
-* **DVC画像管理**: [`DVC_Workflow.md`](DVC_Workflow.md) - 大容量画像を含む場合のワークフロー
-* **差分ツール**: [`README_DiffTool.md`](README_DiffTool.md) - 差分生成機能の詳細
-* **スクリプト仕様**: [`../scripts/README.md`](../scripts/README.md) - 技術的な詳細仕様
-
-問題が発生した場合は，各ワークフローのトラブルシューティングセクションを参照してください．
+- [ ] 相対パスの使用確認
+- [ ] ビルド・差分生成テスト実行
+- [ ] 複数環境での動作確認
+- [ ] 必要に応じてドキュメント更新
